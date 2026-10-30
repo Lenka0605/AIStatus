@@ -210,8 +210,8 @@ struct SettingsView: View {
             }
 
             section("提醒", footnote: model.notifyNote
-                    ?? "剩余低于 20% 和 5% 时各提醒一次；用掉一半以上的额度，到重置时间会提醒你已恢复。Codex 全员重置信号来自 didcodexreset.com（非官方，根据 Tibo 的推文判断）。点通知可以打开面板。") {
-                toggleRow("额度不足提醒", isOn: Binding(get: { model.notifyLow }, set: { model.setNotifyLow($0) }))
+                    ?? "额度剩余低于 20% 和 5% 时各提醒一次，API 余额不到 $5（或 ¥35）时也会提醒；用掉一半以上的额度，到重置时间会提醒你已恢复。Codex 全员重置信号来自 didcodexreset.com（非官方，根据 Tibo 的推文判断）。点通知可以打开面板。") {
+                toggleRow("额度和余额不足提醒", isOn: Binding(get: { model.notifyLow }, set: { model.setNotifyLow($0) }))
                 toggleRow("额度恢复提醒", isOn: Binding(get: { model.notifyReset }, set: { model.setNotifyReset($0) }))
                 toggleRow("Codex 全员重置预告和完成", isOn: Binding(get: { model.notifyResetSignal }, set: { model.setNotifyResetSignal($0) }))
                 HStack(spacing: 16) {

@@ -116,6 +116,7 @@ final class Store {
         // 逐个合并而不是整体替换：查询期间新加的配置不会被抹掉，期间被清除的再去掉
         for (provider, state) in await spendResult {
             spend[provider] = SpendState(spend: state.spend ?? spend[provider]?.spend, error: state.error)
+            if let fresh = state.spend { Notifier.shared.balanceUpdated(provider, spend: fresh) }
         }
         reloadConfiguredProviders()
 
@@ -169,7 +170,9 @@ final class Store {
         let result = await capture { try await SpendService.fetch(.deepseek, key: key) }
         guard let old = spend[.deepseek] else { return }   // 查询期间清除了 Key
         switch result {
-        case .success(let value): spend[.deepseek] = SpendState(spend: value, error: nil)
+        case .success(let value):
+            spend[.deepseek] = SpendState(spend: value, error: nil)
+            Notifier.shared.balanceUpdated(.deepseek, spend: value)
         case .failure(let error): spend[.deepseek] = SpendState(spend: old.spend, error: error.localizedDescription)
         }
     }

@@ -1,7 +1,7 @@
 import AppKit
 @preconcurrency import UserNotifications
 
-/// 系统通知：额度不足、额度恢复。点通知会打开面板。
+/// 系统通知：额度不足、额度恢复、API 余额不足。点通知会打开面板。
 /// 命令行调试时没有 bundle，UNUserNotificationCenter 会直接崩溃，所以那时一律跳过。
 @MainActor
 final class Notifier: NSObject, UNUserNotificationCenterDelegate {
@@ -51,6 +51,33 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
             for window in quota.windows where !window.hasReset {
                 if Preferences.notifyLow { checkLow(key: key, name: name, window: window) }
                 if Preferences.notifyReset { scheduleReset(key: key, name: name, window: window) }
+            }
+        }
+    }
+
+    /// API 余额每次查到新值时调用：变少到偏低时提醒一次，DeepSeek 余额耗尽、API 已无法调用时再提醒一次；
+    /// 充值后回到正常就重新计。Anthropic / OpenAI 只有填了当前余额才有余额可比
+    func balanceUpdated(_ provider: AdminProvider, spend: ApiSpend) {
+        guard let center, Preferences.notifyLow else { return }
+        let level = !spend.available ? 2 : spend.isLow ? 1 : 0
+        Task {
+            let status = await center.notificationSettings().authorizationStatus
+            guard status == .authorized || status == .provisional else { return }
+            var sent = UserDefaults.standard.dictionary(forKey: "notify.balanceSent") as? [String: Int] ?? [:]
+            defer { UserDefaults.standard.set(sent, forKey: "notify.balanceSent") }
+            // 记下当前状态，只在比上次更糟时提醒
+            let previous = sent[provider.rawValue] ?? 0
+            sent[provider.rawValue] = level == 0 ? nil : level
+            guard level > previous else { return }
+            let balance = spend.balances.isEmpty
+                ? Fmt.usd(spend.remaining ?? 0)
+                : spend.balances.map { Fmt.money($0.total, currency: $0.currency) }.joined(separator: " + ")
+            if level == 2 {
+                post(id: "balance.\(provider.rawValue)", title: "\(provider.title) 余额不足，API 已无法调用",
+                     body: "账户余额 \(balance)，充值后才能继续调用")
+            } else {
+                post(id: "balance.\(provider.rawValue)", title: "\(provider.title) API 余额不多了",
+                     body: spend.balances.isEmpty ? "估计还剩 \(balance)（按填写的余额减去之后的花费）" : "账户余额只剩 \(balance)")
             }
         }
     }
