@@ -97,6 +97,7 @@ final class PanelController {
     private var contentSize = CGSize(width: PanelRoot.windowWidth, height: 620)
     private var outsideClickMonitor: Any?
     private var workspaceObservers: [NSObjectProtocol] = []
+    private var statusWindowObserver: NSObjectProtocol?
     /// 收起动画期间面板仍在屏幕上，用这个标记表示逻辑上的开关状态
     private(set) var isOpen = false
     private var generation = 0
@@ -132,11 +133,12 @@ final class PanelController {
         set { panel.appearance = newValue }
     }
 
-    func toggle(from button: NSStatusBarButton) {
+    /// click：点状态栏图标打开时鼠标的位置，用来校验系统给的图标位置（见 updateAnchor）；用快捷键打开时没有
+    func toggle(from button: NSStatusBarButton, click: NSPoint? = nil) {
         // 点状态栏图标时，「点了面板外面」的监听会抢先把面板收起，紧接着才轮到图标的点击。
         // 不跳过的话，这一下会把刚收起的面板又打开，看起来就是怎么点都收不起来
         if !isOpen && Date().timeIntervalSince(closedByOutsideClick) < 0.3 { return }
-        isOpen ? close() : show(from: button)
+        isOpen ? close() : show(from: button, click: click)
     }
 
     func close() {
@@ -151,6 +153,10 @@ final class PanelController {
         }
         workspaceObservers.forEach { NSWorkspace.shared.notificationCenter.removeObserver($0) }
         workspaceObservers = []
+        if let observer = statusWindowObserver {
+            NotificationCenter.default.removeObserver(observer)
+            statusWindowObserver = nil
+        }
         panel.ignoresMouseEvents = true
         withAnimation(.easeIn(duration: 0.14)) { chrome.shown = false }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) { [weak self] in
@@ -160,15 +166,12 @@ final class PanelController {
         }
     }
 
-    private func show(from button: NSStatusBarButton) {
+    private func show(from button: NSStatusBarButton, click: NSPoint?) {
         guard let window = button.window else { return }
         isOpen = true
         generation += 1
         self.button = button
-        // 横向对准图标中心，纵向贴住整条状态栏的下沿（图标按钮本身比状态栏矮）
-        let buttonRect = window.convertToScreen(button.convert(button.bounds, to: nil))
-        anchor = NSRect(x: buttonRect.minX, y: window.frame.minY, width: buttonRect.width, height: window.frame.height)
-        screenFrame = (window.screen ?? NSScreen.main)?.frame ?? .zero
+        updateAnchor(click: click)
         place()
         onOpen()
 
@@ -194,6 +197,15 @@ final class PanelController {
                 self.close()
             }
         }
+        // 图标还在往状态栏里滑的时候打开的，等它停下再对准一次
+        statusWindowObserver = NotificationCenter.default.addObserver(forName: NSWindow.didMoveNotification, object: window,
+                                                                      queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                guard let self, self.isOpen else { return }
+                self.updateAnchor()
+                self.place()
+            }
+        }
         // Cmd-Tab 切到别的应用、切换桌面时也收起
         let center = NSWorkspace.shared.notificationCenter
         let ownPID = ProcessInfo.processInfo.processIdentifier
@@ -207,6 +219,20 @@ final class PanelController {
                 Task { @MainActor in self?.close() }
             },
         ]
+    }
+
+    /// 横向对准图标中心，纵向贴住整条状态栏的下沿（图标按钮本身比状态栏矮）。
+    /// 应用刚启动时图标宽度会变（加上百分比文字），状态栏要重新排版，这期间系统给的图标位置可能是滑动途中的
+    /// （实测横向偏过 140pt、纵向偏过 19pt）。点图标打开时鼠标一定在图标上，横向对不上就以鼠标为准；
+    /// 纵向等图标停下、窗口移动的通知到了再对准（见 show）
+    private func updateAnchor(click: NSPoint? = nil) {
+        guard let button, let window = button.window else { return }
+        let buttonRect = window.convertToScreen(button.convert(button.bounds, to: nil))
+        anchor = NSRect(x: buttonRect.minX, y: window.frame.minY, width: buttonRect.width, height: window.frame.height)
+        if let click, !(anchor.minX - 2...anchor.maxX + 2).contains(click.x) {
+            anchor.origin.x = click.x - anchor.width / 2
+        }
+        screenFrame = (window.screen ?? NSScreen.main)?.frame ?? .zero
     }
 
     private func sizeChanged(_ size: CGSize) {

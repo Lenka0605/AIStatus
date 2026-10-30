@@ -76,7 +76,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func togglePanel(_ sender: NSStatusBarButton) {
-        panel?.toggle(from: sender)
+        panel?.toggle(from: sender, click: NSEvent.mouseLocation)
     }
 
     private func openPanel() {
