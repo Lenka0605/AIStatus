@@ -45,14 +45,17 @@ enum DeepSeekLedger {
             ?? Record(keyID: keyID, since: now, lastAt: now, last: [:], days: [:])
 
         if now >= record.lastAt {
-            for balance in balances {
-                let current = Part(granted: balance.granted, toppedUp: balance.toppedUp)
-                if let previous = record.last[balance.currency] {
+            var latest: [String: Part] = [:]
+            for balance in balances { latest[balance.currency] = Part(granted: balance.granted, toppedUp: balance.toppedUp) }
+            // 某个币种的余额用完后接口就不再返回这一条（实测人民币赠金扣完后那条消失了），按 0 算；
+            // 整个列表都是空的则可能是接口异常，这次不记
+            if !latest.isEmpty {
+                for (currency, previous) in record.last {
+                    let current = latest[currency] ?? Part(granted: 0, toppedUp: 0)
                     let spent = max(0, previous.granted - current.granted) + max(0, previous.toppedUp - current.toppedUp)
-                    if spent > 0.0001 { record.days[today, default: [:]][balance.currency, default: 0] += spent }
+                    if spent > 0.0001 { record.days[today, default: [:]][currency, default: 0] += spent }
                 }
-                // 这次没返回的币种保留上一次的值，免得接口偶尔少返回一条就被当成花光了
-                record.last[balance.currency] = current
+                record.last = latest
             }
             record.lastAt = now
             for day in record.days.keys.sorted().dropLast(62) { record.days[day] = nil }
