@@ -72,7 +72,8 @@ enum DebugTools {
                 CurrencyBalance(currency: "CNY", total: 4.32, granted: 4.32, toppedUp: 0),
             ], usage: args.contains("--sample-fresh")
                 ? BalanceUsage(today: [:], month: [:], since: now.addingTimeInterval(-2 * 3600))
-                : BalanceUsage(today: ["CNY": 2.47], month: ["USD": 1.2, "CNY": 12.68], since: now.addingTimeInterval(-40 * 86_400)))),
+                : BalanceUsage(today: ["CNY": 2.47], month: ["USD": 1.2, "CNY": 12.68], since: now.addingTimeInterval(-40 * 86_400),
+                               recent: sampleRecent(now)))),
         ]
         store.deepseekHealth = ServiceHealth(level: .ok, checkedAt: now)
         if args.contains("--sample-signed-out") {
@@ -118,6 +119,16 @@ enum DebugTools {
             if let u = s.spend?.usage {
                 print("  今日花费: \(u.today)  本月花费: \(u.month)  开始记录: \(Fmt.dayTime(u.since))")
             }
+        }
+    }
+
+    /// 近 7 天：前两天还没开始记录，有一天没花钱，有一天花的是美元
+    private static func sampleRecent(_ now: Date) -> [DaySpend] {
+        let calendar = Calendar.current
+        let values: [[String: Double]] = [[:], [:], ["CNY": 3.1], [:], ["CNY": 5.4], ["USD": 1.2, "CNY": 0.8], ["CNY": 2.47]]
+        return values.enumerated().map { index, amounts in
+            let day = calendar.date(byAdding: .day, value: index - 6, to: calendar.startOfDay(for: now))!
+            return DaySpend(day: day, amounts: amounts, recorded: index >= 2)
         }
     }
 

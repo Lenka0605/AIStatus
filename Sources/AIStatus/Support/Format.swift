@@ -80,6 +80,11 @@ enum Fmt {
         day(date, now: now, weekday: weekday) + " " + time(date)
     }
 
+    /// 周三
+    static func weekday(_ date: Date) -> String {
+        weekdayOnlyFormatter.string(from: date)
+    }
+
     /// 15:00
     static func time(_ date: Date) -> String {
         timeFormatter.string(from: date)
@@ -116,6 +121,7 @@ enum Fmt {
     }()
 
     private static let weekdayFormatter = formatter("EEE HH:mm")
+    private static let weekdayOnlyFormatter = formatter("EEE")
     private static let timeFormatter = formatter("HH:mm")
     private static let dayTimeFormatter = formatter("M/d HH:mm")
     private static let dateFormatter = formatter("M/d")

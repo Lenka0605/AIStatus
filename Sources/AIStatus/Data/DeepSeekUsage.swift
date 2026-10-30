@@ -6,6 +6,14 @@ struct BalanceUsage: Equatable {
     var today: [String: Double]
     var month: [String: Double]
     var since: Date               // 开始记录的时间，之前的花费无从得知
+    var recent: [DaySpend] = []   // 近 7 天，最后一天是今天
+}
+
+struct DaySpend: Equatable, Identifiable {
+    var day: Date
+    var amounts: [String: Double]
+    var recorded: Bool            // 开始记录之前的日子没有数据，和「花了 0」区分开
+    var id: Date { day }
 }
 
 /// DeepSeek 用 API Key 只能查余额，查不到用量明细（网页后台的用量页要网页登录）。
@@ -55,7 +63,13 @@ enum DeepSeekLedger {
         for (day, amounts) in record.days where day.hasPrefix(today.prefix(7)) {
             month.merge(amounts, uniquingKeysWith: +)
         }
-        return BalanceUsage(today: record.days[today] ?? [:], month: month, since: record.since)
+        let calendar = Calendar.current
+        let recent = (0..<7).reversed().compactMap { offset -> DaySpend? in
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: calendar.startOfDay(for: now)) else { return nil }
+            return DaySpend(day: day, amounts: record.days[dayFormatter.string(from: day)] ?? [:],
+                            recorded: day >= calendar.startOfDay(for: record.since))
+        }
+        return BalanceUsage(today: record.days[today] ?? [:], month: month, since: record.since, recent: recent)
     }
 
     private static func load() -> Record? {

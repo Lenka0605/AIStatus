@@ -319,6 +319,8 @@ struct DeepSeekCard: View {
             }
             .help("DeepSeek 的 API Key 查不到用量明细，这里每次查余额都和上一次比，减少的部分记为花费；"
                   + "充值和新到的赠金不算。应用没运行期间的花费，会在下次查到余额时算到那一天")
+            DailySpendChart(days: usage.recent) { amounts($0.map { ($0, $1) }, spend) }
+                .padding(.top, 6)
             Text(usageCaption(usage))
                 .font(.system(size: 11))
                 .foregroundStyle(Theme.tertiaryText)
@@ -344,6 +346,78 @@ struct DeepSeekCard: View {
         let zero = (spend.balances.first { $0.granted > 0 } ?? spend.balances.first(where: { $0.total > 0 }) ?? spend.balances.first)?.currency
         return parts.isEmpty ? Fmt.money(0, currency: zero ?? "CNY") : parts.joined(separator: " + ")
     }
+}
+
+/// 近 7 天每天的花费。只有一组数据，不画图例，也不在每根柱子上标数字：悬停在某一天上，右上角显示那天的金额
+struct DailySpendChart: View {
+    let days: [DaySpend]
+    /// 金额的写法和格子里一致（多个币种用「+」连起来）
+    let format: ([String: Double]) -> String
+    @StateObject private var hover = HoveredDay()
+
+    private static let plotHeight: CGFloat = 30
+
+    var body: some View {
+        let peak = days.map { Self.magnitude($0.amounts) }.max() ?? 0
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("近 7 天").foregroundStyle(Theme.secondaryText)
+                Spacer()
+                Text(headline).foregroundStyle(Theme.text).monospacedDigit()
+            }
+            .font(.system(size: 11))
+            .padding(.horizontal, 2)
+            HStack(spacing: 0) {
+                ForEach(days) { column($0, peak: peak) }
+            }
+        }
+    }
+
+    /// 柱子 + 基线 + 星期；各列之间没有间距，基线连成一条
+    private func column(_ day: DaySpend, peak: Double) -> some View {
+        let value = Self.magnitude(day.amounts)
+        let today = Calendar.current.isDateInToday(day.day)
+        return VStack(spacing: 0) {
+            ZStack(alignment: .bottom) {
+                if value > 0, peak > 0 {
+                    UnevenRoundedRectangle(topLeadingRadius: 4, topTrailingRadius: 4, style: .continuous)
+                        .fill(Palette.deepseek.opacity(hover.day == nil || hover.day == day.day ? 1 : 0.35))
+                        .frame(width: 16, height: max(4, Self.plotHeight * value / peak))
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: Self.plotHeight, maxHeight: Self.plotHeight, alignment: .bottom)
+            Rectangle().fill(Theme.cardBorder).frame(height: 1)
+            Text(today ? "今天" : Fmt.weekday(day.day))
+                .font(.system(size: 10, weight: today ? .semibold : .regular))
+                .foregroundStyle(today ? Theme.secondaryText : Theme.tertiaryText)
+                .opacity(day.recorded ? 1 : 0.5)
+                .padding(.top, 4)
+        }
+        .contentShape(Rectangle())
+        .onHover { inside in
+            if inside { hover.day = day.day } else if hover.day == day.day { hover.day = nil }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(Fmt.day(day.day)) \(day.recorded ? format(day.amounts) : "未记录")")
+    }
+
+    private var headline: String {
+        if let hovered = hover.day, let day = days.first(where: { $0.day == hovered }) {
+            return "\(Fmt.day(day.day))  \(day.recorded ? format(day.amounts) : "未记录")"
+        }
+        let total = days.reduce(into: [String: Double]()) { $0.merge($1.amounts, uniquingKeysWith: +) }
+        return "合计 \(format(total))"
+    }
+
+    /// 柱子高度要用同一把尺子：人民币按约 7:1 折成美元。只影响高度，金额文字照实写
+    private static func magnitude(_ amounts: [String: Double]) -> Double {
+        amounts.reduce(0) { $0 + ($1.key == "CNY" ? $1.value / 7 : $1.value) }
+    }
+}
+
+/// 悬停的是哪一天（理由同 HoverState）
+final class HoveredDay: ObservableObject {
+    @Published var day: Date?
 }
 
 /// Anthropic / OpenAI 的 API 花费和余额（用 Admin Key 查）
