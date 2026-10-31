@@ -172,7 +172,7 @@ enum AppIcons {
     }
 }
 
-/// 订阅档位徽章，如「Max 20x」「Pro」
+/// 订阅档位徽章，如「Ultra」「Pro」
 struct PlanBadge: View {
     let text: String
     let tint: Color
