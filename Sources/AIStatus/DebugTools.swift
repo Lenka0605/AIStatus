@@ -41,9 +41,10 @@ enum DebugTools {
 
     private static func fillSample(_ store: Store, args: [String]) {
         let now = Date()
-        store.claude.quota = ProviderQuota(plan: "Max 20x", windows: [
-            QuotaWindow(id: "five_hour", label: "5 小时", usedPercent: 0, resetsAt: now.addingTimeInterval(4 * 3600 + 3 * 60)),
-            QuotaWindow(id: "seven_day", label: "本周", usedPercent: 3, resetsAt: now.addingTimeInterval(2 * 86_400), weekly: true),
+        store.claude.quota = ProviderQuota(plan: "Ultra", windows: [
+            QuotaWindow(id: "seven_day", label: "本周", usedPercent: 14, resetsAt: now.addingTimeInterval(2 * 86_400), weekly: true),
+            QuotaWindow(id: "seven_day_fable", label: "本周 Fable", usedPercent: 0, resetsAt: now.addingTimeInterval(2 * 86_400),
+                        note: "最多用周额度的 50%"),
         ], credits: nil, source: .live, asOf: now)
         store.claude.setTodayUsed(2)
         store.codex.quota = ProviderQuota(plan: "Pro", windows: [

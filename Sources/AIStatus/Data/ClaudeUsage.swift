@@ -33,6 +33,8 @@ enum ClaudeUsageClient {
               // claude_max / claude_pro / claude_team / claude_enterprise；其他类型（如 API 账户）不认
               let type = (org["organization_type"] as? String)?.lowercased(), type.hasPrefix("claude_")
         else { return nil }
+        // 套餐改名后（Max 20x → Ultra）接口直接给出显示名
+        if let name = org["plan_display_name"] as? String, !name.isEmpty { return name }
         let raw = String(type.dropFirst("claude_".count))
         guard ["max", "pro", "team", "enterprise"].contains(raw) else { return nil }
         return planName(raw, tier: org["rate_limit_tier"] as? String)
@@ -78,14 +80,15 @@ enum ClaudeUsageClient {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw FetchError.badResponse
         }
+        var windows = parseLimits(json)
+        // 旧字段：没有 limits 的旧接口，或者 limits 里没有的额度（如未验证的 Ultra 账户临时的 5 小时额度）
         let known: [(key: String, label: String, always: Bool)] = [
             ("five_hour", "5 小时", true),
             ("seven_day", "本周", true),
             ("seven_day_opus", "本周 Opus", false),
             ("seven_day_sonnet", "本周 Sonnet", false),
         ]
-        var windows: [QuotaWindow] = []
-        for item in known {
+        for item in known where !windows.contains(where: { $0.id == item.key }) {
             guard let w = json[item.key] as? [String: Any], let used = jsonNumber(w["utilization"]) else { continue }
             let resets = (w["resets_at"] as? String).flatMap(DateParsing.iso8601)
             // 按模型区分的周额度只在实际使用过（有重置时间）时显示
@@ -94,17 +97,47 @@ enum ClaudeUsageClient {
                                        weekly: item.key == "seven_day"))
         }
         guard !windows.isEmpty else { throw FetchError.badResponse }
+        // 5 小时在前，然后是总的周额度，最后是单个模型的
+        let rank = ["five_hour": 0, "seven_day": 1]
+        windows.sort { (rank[$0.id] ?? 2) < (rank[$1.id] ?? 2) }
         return ProviderQuota(plan: plan, windows: windows, credits: nil, source: .live, asOf: Date())
     }
 
-    /// subscriptionType 只区分 max / pro，Max 的两个档位要看 rateLimitTier（如 default_claude_max_20x）
+    /// 2026 年 10 月起（Max 20x 改名 Ultra、取消 5 小时额度）各项额度放在 limits 里：weekly_all 是所有模型共用的周额度，
+    /// weekly_scoped 是某个模型单独的周额度，比如 Fable 最多用掉周额度的一半（比例在 weekly_scoped_shares 里）。
+    /// Claude 设置页里也列着还没用过的模型额度，这里一样都显示
+    private static func parseLimits(_ json: [String: Any]) -> [QuotaWindow] {
+        let limits = json["limits"] as? [[String: Any]] ?? []
+        let shares = json["weekly_scoped_shares"] as? [[String: Any]] ?? []
+        return limits.enumerated().compactMap { index, limit in
+            guard let used = jsonNumber(limit["percent"]) else { return nil }
+            let resets = (limit["resets_at"] as? String).flatMap(DateParsing.iso8601)
+            let kind = limit["kind"] as? String ?? ""
+            let model = ((limit["scope"] as? [String: Any])?["model"] as? [String: Any])?["display_name"] as? String
+            switch kind {
+            case "weekly_all":
+                return QuotaWindow(id: "seven_day", label: "本周", usedPercent: used, resetsAt: resets, weekly: true)
+            case "weekly_scoped":
+                guard let model else { return nil }
+                let allowance = shares.first { jsonNumber($0["limit_index"]) == Double(index) }
+                    .flatMap { jsonNumber($0["allowance_percent_of_weekly"]) }
+                return QuotaWindow(id: "seven_day_\(model.lowercased())", label: "本周 \(model)", usedPercent: used,
+                                   resetsAt: resets, note: allowance.map { "最多用周额度的 \(Int($0))%" })
+            default:
+                // 不认识的种类里只认 5 小时额度，其他的不知道怎么解释，宁可不显示
+                guard kind.contains("five_hour") || limit["group"] as? String == "session" else { return nil }
+                return QuotaWindow(id: "five_hour", label: "5 小时", usedPercent: used, resetsAt: resets)
+            }
+        }
+    }
+
+    /// 账户接口拿不到套餐名时，用凭证推算。subscriptionType 只区分 max / pro，Max 的两个档位要看 rateLimitTier
+    /// （如 default_claude_max_20x）。2026 年 10 月起 Max 20x 改名 Ultra，Max 5x 改名 Max
     static func planName(_ raw: String, tier: String?) -> String {
         switch raw.lowercased() {
         case "max":
             let tier = tier?.lowercased() ?? ""
-            if tier.contains("20x") { return "Max 20x" }
-            if tier.contains("5x") { return "Max 5x" }
-            return "Max"
+            return tier.contains("20x") ? "Ultra" : "Max"
         case "pro": return "Pro"
         case "team": return "Team"
         case "enterprise": return "Enterprise"
@@ -114,7 +147,7 @@ enum ClaudeUsageClient {
 
     /// 个人套餐的月费（美元）；团队、企业版按席位计费，不显示
     static func monthlyPrice(_ plan: String) -> Int? {
-        ["Pro": 20, "Max 5x": 100, "Max 20x": 200][plan]
+        ["Pro": 20, "Max": 100, "Ultra": 200][plan]
     }
 }
 

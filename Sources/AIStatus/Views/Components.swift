@@ -268,9 +268,14 @@ struct QuotaRow: View {
         VStack(spacing: 7) {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(window.label).font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.text)
-                TimelineView(.everyMinute) { context in
-                    if let reset = Fmt.reset(window.resetsAt, now: context.date) {
-                        Text(reset).font(.system(size: 11)).foregroundStyle(Theme.tertiaryText)
+                if let note = window.note {
+                    // 单个模型的周额度和总的周额度同时重置，不再重复写重置时间
+                    Text(note).font(.system(size: 11)).foregroundStyle(Theme.tertiaryText)
+                } else {
+                    TimelineView(.everyMinute) { context in
+                        if let reset = Fmt.reset(window.resetsAt, now: context.date) {
+                            Text(reset).font(.system(size: 11)).foregroundStyle(Theme.tertiaryText)
+                        }
                     }
                 }
                 Spacer(minLength: 4)

@@ -111,7 +111,9 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         if let last = sent[slot], last.count == 2, last[0] == period, Double(last[1]) <= level { return }
         sent[slot] = [period, Int(level)]
         UserDefaults.standard.set(sent, forKey: "notify.lowSent")
-        post(id: "low.\(slot)", title: "\(name) \(window.label)额度只剩 \(Int(remaining.rounded()))%",
+        // 「本周额度」「本周 Fable 额度」：标签以英文结尾时加个空格
+        let label = window.label + (window.label.last?.isASCII == true ? " " : "")
+        post(id: "low.\(slot)", title: "\(name) \(label)额度只剩 \(Int(remaining.rounded()))%",
              body: Fmt.reset(window.resetsAt) ?? "")
     }
 

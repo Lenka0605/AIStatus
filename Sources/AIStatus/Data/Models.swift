@@ -7,6 +7,8 @@ struct QuotaWindow: Identifiable, Equatable, Codable {
     let resetsAt: Date?
     /// 周额度：用来计算「今日已用」
     var weekly = false
+    /// 显示在名称旁边，代替重置时间（如「最多用周额度的 50%」）
+    var note: String?
 
     /// 重置时间已过但还没拿到新数据时，视为已重置
     var hasReset: Bool { resetsAt.map { $0 <= Date() } ?? false }
