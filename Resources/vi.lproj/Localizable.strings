@@ -224,3 +224,7 @@
 "额度在后台按上面的间隔自动更新，状态栏数字跟着变；「仅在使用时」只在你正在用 Claude Code / Codex 时每 10 分钟查一次。服务状态和 Codex 重置信号每 5 分钟检查一次。查询太频繁被限流时会自动暂停，到时间再继续。" = "Hạn mức được làm mới nền theo khoảng thời gian ở trên, số trên thanh menu cũng thay đổi theo. “Chỉ khi đang dùng” chỉ kiểm tra mỗi 10 phút khi bạn đang dùng Claude Code / Codex. Trạng thái dịch vụ và tín hiệu đặt lại Codex được kiểm tra mỗi 5 phút. Khi bị giới hạn truy vấn, ứng dụng sẽ tự tạm dừng rồi tiếp tục.";
 "额度已经重置，可以继续用了" = "Hạn mức đã được đặt lại, có thể dùng tiếp.";
 "额度恢复提醒" = "Nhắc khi hạn mức được đặt lại";
+"语言" = "Ngôn ngữ";
+"跟随系统" = "Theo hệ thống";
+"重新打开后生效" = "Có hiệu lực sau khi mở lại";
+"立即重新打开" = "Mở lại ngay";

@@ -50,6 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !GlobalHotKey.apply(Preferences.hotKey) {
             NSLog("AIStatus: 快捷键 \(Preferences.hotKey.title) 注册失败")
         }
+        _ = LanguageOption.atLaunch   // 记下启动时的语言设置，设置页据此判断要不要提示重新打开
         store.startBackgroundWork()
         Updater.shared.startAutomaticChecks()
 

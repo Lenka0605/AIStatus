@@ -224,3 +224,7 @@
 "额度在后台按上面的间隔自动更新，状态栏数字跟着变；「仅在使用时」只在你正在用 Claude Code / Codex 时每 10 分钟查一次。服务状态和 Codex 重置信号每 5 分钟检查一次。查询太频繁被限流时会自动暂停，到时间再继续。" = "Quota refreshes in the background at the interval above, and the menu bar number follows. “Only while in use” checks every 10 minutes only while you're using Claude Code / Codex. Service status and Codex reset signals are checked every 5 minutes. If rate-limited, checks pause and resume automatically.";
 "额度已经重置，可以继续用了" = "Quota has reset. You're good to go.";
 "额度恢复提醒" = "Quota reset alerts";
+"语言" = "Language";
+"跟随系统" = "System";
+"重新打开后生效" = "Takes effect after reopening";
+"立即重新打开" = "Reopen Now";

@@ -27,6 +27,7 @@ final class SettingsModel {
     var menuBarPercent = Preferences.menuBarPercent
     var quotaRefresh = Preferences.quotaRefresh
     var appearance = Preferences.appearance
+    var language = LanguageOption.current
     var hotKey = Preferences.hotKey
     var hotKeyNote: String?
     var autoCheckUpdates = Preferences.autoCheckUpdates
@@ -45,6 +46,7 @@ final class SettingsModel {
         menuBarPercent = Preferences.menuBarPercent
         quotaRefresh = Preferences.quotaRefresh
         appearance = Preferences.appearance
+        language = LanguageOption.current
         hotKey = Preferences.hotKey
         autoCheckUpdates = Preferences.autoCheckUpdates
         Task { await refreshNotifyNote() }
@@ -88,6 +90,14 @@ final class SettingsModel {
     }
 
     /// AppDelegate 观察这个属性，立即应用到面板和设置窗口
+    func setLanguage(_ option: LanguageOption) {
+        LanguageOption.current = option
+        language = option
+    }
+
+    /// 改了语言还没重新打开
+    var languageNeedsRelaunch: Bool { language != LanguageOption.atLaunch }
+
     func setAppearance(_ mode: AppearanceMode) {
         Preferences.appearance = mode
         appearance = mode
@@ -235,6 +245,17 @@ struct SettingsView: View {
                     ?? L("额度在后台按上面的间隔自动更新，状态栏数字跟着变；「仅在使用时」只在你正在用 Claude Code / Codex 时每 10 分钟查一次。服务状态和 Codex 重置信号每 5 分钟检查一次。查询太频繁被限流时会自动暂停，到时间再继续。")) {
                 pickerRow(L("外观"), selection: Binding(get: { model.appearance }, set: { model.setAppearance($0) }),
                           options: AppearanceMode.allCases, title: \.title, style: .segmented)
+                pickerRow(L("语言"), selection: Binding(get: { model.language }, set: { model.setLanguage($0) }),
+                          options: LanguageOption.allCases, title: \.title, width: 120)
+                if model.languageNeedsRelaunch {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.clockwise.circle.fill").foregroundStyle(Palette.warn)
+                        Text(L("重新打开后生效")).font(.system(size: 12)).foregroundStyle(Theme.secondaryText)
+                        Spacer()
+                        Button(L("立即重新打开")) { LanguageOption.relaunch() }
+                            .controlSize(.small)
+                    }
+                }
                 toggleRow(L("开机自动启动"), isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) }))
                 toggleRow(L("状态栏显示剩余百分比"), isOn: Binding(get: { model.menuBarPercent }, set: { model.setMenuBarPercent($0) }))
                 pickerRow(L("自动刷新额度"), selection: Binding(get: { model.quotaRefresh }, set: { model.setQuotaRefresh($0) }),

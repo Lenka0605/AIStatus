@@ -23,7 +23,7 @@ macOS 14 or later · Universal (Apple silicon and Intel)
 - **Anthropic / OpenAI API**: today's and this month's spending and remaining balance, using an Admin Key
 - **Service status**: reads each provider's official status page and flags incidents on the card
 - **Notifications**: quota below 20% / 5%, quota reset, low API balance, Codex global reset
-- **Multilingual**: Chinese, English and Vietnamese, following your system language automatically
+- **Multilingual**: Chinese, English and Vietnamese — follows your system language by default, or pick one in Settings › General › Language
 - **Auto update**: new versions show up in the panel; one click downloads and installs them
 - ⌥⌘A hotkey, launch at login, light and dark appearance
 

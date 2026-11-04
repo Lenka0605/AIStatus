@@ -23,7 +23,7 @@ macOS 14 trở lên · Hỗ trợ cả chip Apple và Intel
 - **API Anthropic / OpenAI**: chi tiêu hôm nay, tháng này và số dư còn lại, dùng Admin Key
 - **Trạng thái dịch vụ**: đọc trang trạng thái chính thức của từng nhà cung cấp, báo ngay trên thẻ khi có sự cố
 - **Thông báo**: hạn mức dưới 20% / 5%, hạn mức được đặt lại, số dư API thấp, Codex đặt lại cho mọi người
-- **Đa ngôn ngữ**: tiếng Trung, tiếng Anh, tiếng Việt, tự động theo ngôn ngữ hệ thống
+- **Đa ngôn ngữ**: tiếng Trung, tiếng Anh, tiếng Việt — mặc định theo ngôn ngữ hệ thống, hoặc tự chọn trong Cài đặt › Chung › Ngôn ngữ
 - **Tự động cập nhật**: có phiên bản mới sẽ hiện trên bảng, một cú nhấp để tải và cài
 - Phím tắt ⌥⌘A, mở khi đăng nhập, giao diện sáng/tối
 
