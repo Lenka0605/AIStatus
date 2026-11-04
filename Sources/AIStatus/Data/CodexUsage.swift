@@ -63,7 +63,7 @@ enum CodexUsageClient {
             if resets == nil, let after = jsonNumber(w["reset_after_seconds"]) {
                 resets = Date().addingTimeInterval(after)
             }
-            windows.append(QuotaWindow(id: key, label: windowLabel(minutes: minutes), usedPercent: used, resetsAt: resets,
+            windows.append(QuotaWindow(id: key, name: .span(minutes: minutes), usedPercent: used, resetsAt: resets,
                                        weekly: isWeekly(minutes)))
         }
         guard !windows.isEmpty else { throw FetchError.badResponse }
@@ -146,7 +146,7 @@ enum CodexLogReader {
             let minutes = jsonNumber(w["window_minutes"]).map { Int($0.rounded()) }
             windows.append(QuotaWindow(
                 id: key,
-                label: CodexUsageClient.windowLabel(minutes: minutes),
+                name: .span(minutes: minutes),
                 usedPercent: used,
                 resetsAt: jsonNumber(w["resets_at"]).map { Date(timeIntervalSince1970: $0) },
                 weekly: CodexUsageClient.isWeekly(minutes)

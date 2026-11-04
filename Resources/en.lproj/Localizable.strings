@@ -133,7 +133,7 @@
 "更新到 %@" = "Update to %@";
 "更新失败，重试" = "Update failed, retry";
 "更新失败：%@" = "Update failed: %@";
-"最多用周额度的 %lld%%" = "up to %lld%% of weekly";
+"最多用周额度的 %lld%%" = "up to %lld%%";
 "有进行中的事件" = "Active incident";
 "服务状态：%@，点击打开官方状态页" = "Service status: %@. Click to open the official status page.";
 "服务状态：还没查到，点击打开官方状态页" = "Service status: not checked yet. Click to open the official status page.";
@@ -226,5 +226,3 @@
 "额度恢复提醒" = "Quota reset alerts";
 "语言" = "Language";
 "跟随系统" = "System";
-"重新打开后生效" = "Takes effect after reopening";
-"立即重新打开" = "Reopen Now";

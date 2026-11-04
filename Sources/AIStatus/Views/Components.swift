@@ -279,7 +279,7 @@ struct QuotaRow: View {
                     }
                 }
                 Spacer(minLength: 4)
-                Text("剩余").font(.system(size: 11)).foregroundStyle(Theme.secondaryText)
+                Text(L("剩余")).font(.system(size: 11)).foregroundStyle(Theme.secondaryText)
                 PercentText(value: remaining, color: low ? Palette.danger : Theme.text)
             }
             MeterBar(fraction: remaining / 100, tint: low ? Palette.danger : tint)
@@ -297,7 +297,7 @@ struct TodaySummary: View {
             HStack(spacing: 8) {
                 if let todayUsed {
                     StatTile(icon: "calendar", title: L("今日已用周额度"), value: Fmt.percent(todayUsed))
-                        .help("根据服务器额度计算，包含网页、云端任务、手机和其他电脑上的使用")
+                        .help(L("根据服务器额度计算，包含网页、云端任务、手机和其他电脑上的使用"))
                 }
                 StatTile(icon: "cpu", title: L("本机今日 Token"), value: Fmt.tokens(tokens.total))
             }
@@ -434,7 +434,7 @@ struct ServiceNotice: View {
                 .lineLimit(2)
                 .multilineTextAlignment(.leading)
                 Spacer(minLength: 4)
-                Text("状态页").foregroundStyle(Theme.secondaryText)
+                Text(L("状态页")).foregroundStyle(Theme.secondaryText)
                 Image(systemName: "chevron.right").font(.system(size: 8.5, weight: .bold)).foregroundStyle(Theme.tertiaryText)
             }
             .font(.system(size: 11.5))

@@ -40,7 +40,7 @@ struct PopoverView: View {
         HStack(spacing: 12) {
             AppGlyph(size: 40)
             VStack(alignment: .leading, spacing: 2) {
-                Text("AI 余量").font(.system(size: 16, weight: .semibold)).foregroundStyle(Theme.text)
+                Text(L("AI 余量")).font(.system(size: 16, weight: .semibold)).foregroundStyle(Theme.text)
                 Text(store.lastUpdated.map { L("更新于 \(Fmt.clock($0))") } ?? L("正在获取…"))
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.secondaryText)
@@ -69,11 +69,11 @@ struct PopoverView: View {
 
             Button(action: actions.openSettings) { Image(systemName: "gearshape") }
                 .buttonStyle(SoftButtonStyle(square: true))
-                .help("设置")
+                .help(L("设置"))
 
             Button(action: actions.quit) { Image(systemName: "power") }
                 .buttonStyle(SoftButtonStyle(square: true))
-                .help("退出")
+                .help(L("退出"))
         }
     }
 }
@@ -153,13 +153,13 @@ struct ProviderInfo {
     )
 
     /// 没装 DeepSeek Harness 时打开开放平台
-    static let deepseek = ProviderInfo(
+    static var deepseek: ProviderInfo { ProviderInfo(
         name: "DeepSeek", product: L("开放平台"), kind: .deepseek, tint: Palette.deepseek,
         price: { _ in nil }, app: AppIcons.deepseekApp,
         web: URL(string: "https://platform.deepseek.com")!,
         usage: URL(string: "https://platform.deepseek.com/usage")!,
         status: DeepSeekStatusClient.pageURL
-    )
+    ) }
 
     func openApp() {
         if let app {
@@ -197,7 +197,7 @@ struct ProviderCard: View {
                 if let credits = quota.credits {
                     HStack(spacing: 5) {
                         Image(systemName: "bolt.circle.fill").font(.system(size: 12)).foregroundStyle(info.tint)
-                        Text("Credits 余额").font(.system(size: 12)).foregroundStyle(Theme.secondaryText)
+                        Text(L("Credits 余额")).font(.system(size: 12)).foregroundStyle(Theme.secondaryText)
                         Spacer()
                         Text(Fmt.integer(credits))
                             .font(.system(size: 14, weight: .semibold, design: .rounded))
@@ -216,7 +216,7 @@ struct ProviderCard: View {
             } else if state.quota == nil {
                 HStack(spacing: 6) {
                     ProgressView().controlSize(.mini)
-                    Text("正在获取额度…").font(.system(size: 11)).foregroundStyle(Theme.secondaryText)
+                    Text(L("正在获取额度…")).font(.system(size: 11)).foregroundStyle(Theme.secondaryText)
                 }
             }
 
@@ -323,7 +323,7 @@ struct DeepSeekCard: View {
                 } else if state.spend == nil {
                     HStack(spacing: 6) {
                         ProgressView().controlSize(.mini)
-                        Text("正在查询余额…").font(.system(size: 11)).foregroundStyle(Theme.secondaryText)
+                        Text(L("正在查询余额…")).font(.system(size: 11)).foregroundStyle(Theme.secondaryText)
                     }
                 }
             } else {
@@ -337,7 +337,7 @@ struct DeepSeekCard: View {
     /// 「账户余额  $20.00 + ¥4.32」：每个币种一个数
     private func balanceRow(_ spend: ApiSpend) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 5) {
-            Text("账户余额").font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.text)
+            Text(L("账户余额")).font(.system(size: 12.5, weight: .semibold)).foregroundStyle(Theme.text)
             Spacer(minLength: 4)
             ForEach(Array(spend.balances.enumerated()), id: \.element.id) { index, balance in
                 if index > 0 {
@@ -411,7 +411,7 @@ struct DailySpendChart: View {
         let peak = days.map { Self.magnitude($0.amounts) }.max() ?? 0
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
-                Text("近 7 天").foregroundStyle(Theme.secondaryText)
+                Text(L("近 7 天")).foregroundStyle(Theme.secondaryText)
                 Spacer()
                 Text(headline).foregroundStyle(Theme.text).monospacedDigit()
             }
@@ -486,14 +486,14 @@ struct ApiBalanceCard: View {
                     .overlay(Image(systemName: "creditcard.fill").font(.system(size: 13)).foregroundStyle(Theme.secondaryText))
                     .frame(width: 32, height: 32)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("API 余额").font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.text)
-                    Text("Anthropic · OpenAI，用 Admin Key 查询")
+                    Text(L("API 余额")).font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.text)
+                    Text(L("Anthropic · OpenAI，用 Admin Key 查询"))
                         .font(.system(size: 11))
                         .foregroundStyle(Theme.secondaryText)
                 }
             }
             if providers.isEmpty {
-                Text("填写 Admin Key 后，这里显示 API 当天和当月的花费；再填上当前余额，就能算出还剩多少")
+                Text(L("填写 Admin Key 后，这里显示 API 当天和当月的花费；再填上当前余额，就能算出还剩多少"))
                     .font(.system(size: 11))
                     .foregroundStyle(Theme.tertiaryText)
                     .fixedSize(horizontal: false, vertical: true)
@@ -520,7 +520,7 @@ struct SetupPrompt: View {
             HStack(spacing: 6) {
                 Text(text).foregroundStyle(Theme.secondaryText)
                 Spacer(minLength: 4)
-                Text("去设置").foregroundStyle(Theme.text)
+                Text(L("去设置")).foregroundStyle(Theme.text)
                 Image(systemName: "chevron.right").font(.system(size: 8.5, weight: .bold)).foregroundStyle(Theme.tertiaryText)
             }
             .font(.system(size: 11.5))

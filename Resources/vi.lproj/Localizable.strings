@@ -133,7 +133,7 @@
 "更新到 %@" = "Cập nhật lên %@";
 "更新失败，重试" = "Cập nhật lỗi, thử lại";
 "更新失败：%@" = "Cập nhật thất bại: %@";
-"最多用周额度的 %lld%%" = "tối đa %lld%% hạn mức";
+"最多用周额度的 %lld%%" = "tối đa %lld%%";
 "有进行中的事件" = "Có sự cố đang diễn ra";
 "服务状态：%@，点击打开官方状态页" = "Trạng thái dịch vụ: %@. Nhấn để mở trang trạng thái chính thức.";
 "服务状态：还没查到，点击打开官方状态页" = "Trạng thái dịch vụ: chưa kiểm tra. Nhấn để mở trang trạng thái chính thức.";
@@ -226,5 +226,3 @@
 "额度恢复提醒" = "Nhắc khi hạn mức được đặt lại";
 "语言" = "Ngôn ngữ";
 "跟随系统" = "Theo hệ thống";
-"重新打开后生效" = "Có hiệu lực sau khi mở lại";
-"立即重新打开" = "Mở lại ngay";

@@ -6,7 +6,7 @@ import SwiftUI
 enum Main {
     static func main() {
         let args = CommandLine.arguments
-        if ["--dump", "--snapshot", "--make-icon", "--check-update", "--install-update"].contains(where: args.contains) {
+        if ["--dump", "--snapshot", "--switch-test", "--make-icon", "--check-update", "--install-update"].contains(where: args.contains) {
             DebugTools.run(args)
             return
         }
@@ -50,11 +50,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !GlobalHotKey.apply(Preferences.hotKey) {
             NSLog("AIStatus: 快捷键 \(Preferences.hotKey.title) 注册失败")
         }
-        _ = LanguageOption.atLaunch   // 记下启动时的语言设置，设置页据此判断要不要提示重新打开
         store.startBackgroundWork()
         Updater.shared.startAutomaticChecks()
 
-        installEditMenu()
+        updateLanguage()
         updateIcon()
         updateAppearance()
     }
@@ -105,6 +104,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             alertDot.show(level: store.serviceLevel, on: button)
         } onChange: { [weak self] in
             Task { @MainActor in self?.updateIcon() }
+        }
+    }
+
+    /// 换语言时：面板、设置页、状态栏提示会自己重画（它们读到了语言状态），
+    /// 这里补上不在 SwiftUI 里的部分（编辑菜单、窗口标题），再重新查一次，让错误提示、服务状态这些已经生成好的文字也换成新语言
+    private func updateLanguage() {
+        withObservationTracking {
+            _ = LanguageState.shared.code
+            installEditMenu()
+            settingsWindow?.title = L("AI 余量设置")
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                self?.updateLanguage()
+                self?.store.languageChanged()
+            }
         }
     }
 

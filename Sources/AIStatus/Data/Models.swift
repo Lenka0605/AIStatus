@@ -1,14 +1,36 @@
 import Foundation
 
 struct QuotaWindow: Identifiable, Equatable, Codable {
+    /// 额度的种类。只存种类、显示时再翻译，这样在设置里换语言后卡片立即跟着变
+    enum Name: Codable, Equatable {
+        case weekly
+        case fiveHour
+        /// 单个模型的周额度，如 Fable
+        case weeklyModel(String)
+        /// Codex 按窗口长度命名（本周、5 小时……）
+        case span(minutes: Int?)
+    }
+
     let id: String
-    let label: String
+    let name: Name
     let usedPercent: Double
     let resetsAt: Date?
     /// 周额度：用来计算「今日已用」
     var weekly = false
-    /// 显示在名称旁边，代替重置时间（如「最多用周额度的 50%」）
-    var note: String?
+    /// 最多能用掉周额度的百分之几，显示在名称旁边，代替重置时间
+    var allowance: Int?
+
+    var label: String {
+        switch name {
+        case .weekly: return L("本周")
+        case .fiveHour: return L("5 小时")
+        case .weeklyModel(let model): return L("本周 \(model)")
+        case .span(let minutes): return CodexUsageClient.windowLabel(minutes: minutes)
+        }
+    }
+
+    /// 「最多用周额度的 50%」
+    var note: String? { allowance.map { L("最多用周额度的 \($0)%") } }
 
     /// 重置时间已过但还没拿到新数据时，视为已重置
     var hasReset: Bool { resetsAt.map { $0 <= Date() } ?? false }

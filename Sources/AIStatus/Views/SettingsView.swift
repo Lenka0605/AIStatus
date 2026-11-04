@@ -95,9 +95,6 @@ final class SettingsModel {
         language = option
     }
 
-    /// 改了语言还没重新打开
-    var languageNeedsRelaunch: Bool { language != LanguageOption.atLaunch }
-
     func setAppearance(_ mode: AppearanceMode) {
         Preferences.appearance = mode
         appearance = mode
@@ -232,9 +229,9 @@ struct SettingsView: View {
                 toggleRow(L("额度恢复提醒"), isOn: Binding(get: { model.notifyReset }, set: { model.setNotifyReset($0) }))
                 toggleRow(L("Codex 全员重置预告和完成"), isOn: Binding(get: { model.notifyResetSignal }, set: { model.setNotifyResetSignal($0) }))
                 HStack(spacing: 16) {
-                    Button("发送一条测试通知") { model.sendTestNotification() }
+                    Button(L("发送一条测试通知")) { model.sendTestNotification() }
                     if model.notifyNote != nil {
-                        Button("打开系统通知设置") { NSWorkspace.shared.open(Notifier.settingsURL) }
+                        Button(L("打开系统通知设置")) { NSWorkspace.shared.open(Notifier.settingsURL) }
                     }
                 }
                 .buttonStyle(.link)
@@ -247,15 +244,6 @@ struct SettingsView: View {
                           options: AppearanceMode.allCases, title: \.title, style: .segmented)
                 pickerRow(L("语言"), selection: Binding(get: { model.language }, set: { model.setLanguage($0) }),
                           options: LanguageOption.allCases, title: \.title, width: 120)
-                if model.languageNeedsRelaunch {
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.clockwise.circle.fill").foregroundStyle(Palette.warn)
-                        Text(L("重新打开后生效")).font(.system(size: 12)).foregroundStyle(Theme.secondaryText)
-                        Spacer()
-                        Button(L("立即重新打开")) { LanguageOption.relaunch() }
-                            .controlSize(.small)
-                    }
-                }
                 toggleRow(L("开机自动启动"), isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) }))
                 toggleRow(L("状态栏显示剩余百分比"), isOn: Binding(get: { model.menuBarPercent }, set: { model.setMenuBarPercent($0) }))
                 pickerRow(L("自动刷新额度"), selection: Binding(get: { model.quotaRefresh }, set: { model.setQuotaRefresh($0) }),
@@ -313,7 +301,7 @@ struct SettingsView: View {
                 InlineNotice(text: error)
             }
             Spacer()
-            Button("保存") { model.save(store) }
+            Button(L("保存")) { model.save(store) }
                 .keyboardShortcut(.defaultAction)
                 .controlSize(.large)
                 .disabled(model.toast != nil)   // 已经在关窗口了，避免连点
@@ -327,7 +315,7 @@ struct SettingsView: View {
             HStack(spacing: 8) {
                 Text(provider.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.text)
                 if draft.wrappedValue.hasKey {
-                    Text("已配置")
+                    Text(L("已配置"))
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 6)
@@ -336,7 +324,7 @@ struct SettingsView: View {
                 }
                 Spacer()
                 if draft.wrappedValue.hasKey {
-                    Button("清除") { model.clear(provider, store) }
+                    Button(L("清除")) { model.clear(provider, store) }
                         .buttonStyle(.link)
                         .font(.system(size: 12))
                 }
@@ -349,7 +337,7 @@ struct SettingsView: View {
             }
             if !provider.reportsBalance {
                 labeled(L("当前余额")) {
-                    TextField("当前余额", text: draft.balance, prompt: Text(balanceHint(draft.wrappedValue)))
+                    TextField(L("当前余额"), text: draft.balance, prompt: Text(balanceHint(draft.wrappedValue)))
                         .textFieldStyle(.roundedBorder)
                         .labelsHidden()
                 }

@@ -48,15 +48,15 @@ enum ServiceStatusClient {
         let incidentKeywords: [String]
     }
 
-    static let claude = Source(
+    static var claude: Source { Source(
         summaryURL: URL(string: "https://status.claude.com/api/v2/summary.json")!,
         pageURL: URL(string: "https://status.claude.com")!,
         fallbackSubject: L("Claude 服务"),
         isRelevantComponent: { name in ["claude.ai", "Claude API", "Claude Code"].contains { name.hasPrefix($0) } },
         incidentKeywords: []
-    )
+    ) }
 
-    static let openai = Source(
+    static var openai: Source { Source(
         summaryURL: URL(string: "https://status.openai.com/api/v2/summary.json")!,
         pageURL: URL(string: "https://status.openai.com")!,
         fallbackSubject: L("OpenAI 服务"),
@@ -64,7 +64,7 @@ enum ServiceStatusClient {
             name.localizedCaseInsensitiveContains("codex") || ["CLI", "VS Code extension", "Login", "Conversations"].contains(name)
         },
         incidentKeywords: ["codex", "chatgpt", "login", "log in", "sign in", "code review"]
-    )
+    ) }
 
     static func fetch(_ source: Source) async throws -> ServiceHealth {
         var req = URLRequest(url: source.summaryURL, timeoutInterval: 15)
@@ -228,7 +228,7 @@ enum DeepSeekStatusClient {
 /// 标题基本都是固定套路（Elevated errors for…、Degraded performance in…、Delays in…），按关键词对照即可
 enum IncidentSummary {
     /// 按顺序匹配，先出现的优先
-    private static let problems: [(keys: [String], text: String)] = [
+    private static var problems: [(keys: [String], text: String)] { [
         (["maintenance"], L("维护中")),
         (["limited availability", "partially unavailable"], L("部分不可用")),
         (["outage", "unavailable", "not loading", "unable to", "cannot", "can't", "inaccessible", "not working", "down for"], L("无法使用")),
@@ -236,10 +236,10 @@ enum IncidentSummary {
         (["degraded performance", "latency", "slow", "timeout", "timing out"], L("变慢")),
         (["delay"], L("延迟")),
         (["degraded", "degradation"], L("功能异常")),
-    ]
+    ] }
 
     /// 受影响的功能；用正则词边界，避免 api 匹配到 rapid 这类单词
-    private static let subjects: [(pattern: String, text: String)] = [
+    private static var subjects: [(pattern: String, text: String)] { [
         (#"claude code"#, "Claude Code"),
         (#"claude\.ai"#, "claude.ai"),
         (#"\bcowork\b"#, "Cowork"),
@@ -267,7 +267,7 @@ enum IncidentSummary {
         (#"credits?"#, "Credits"),
         (#"subscriptions?|billing|payments?|purchases?"#, L("订阅付费")),
         (#"\bapis?\b"#, "API"),
-    ]
+    ] }
 
     /// 模型名保留原文和版本号，如「Fable 5.1」「GPT-6.1」
     private static let modelPatterns = [

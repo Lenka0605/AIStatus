@@ -82,18 +82,18 @@ enum ClaudeUsageClient {
         }
         var windows = parseLimits(json)
         // 旧字段：没有 limits 的旧接口，或者 limits 里没有的额度（如未验证的 Ultra 账户临时的 5 小时额度）
-        let known: [(key: String, label: String, always: Bool)] = [
-            ("five_hour", L("5 小时"), true),
-            ("seven_day", L("本周"), true),
-            ("seven_day_opus", L("本周 \("Opus")"), false),
-            ("seven_day_sonnet", L("本周 \("Sonnet")"), false),
+        let known: [(key: String, name: QuotaWindow.Name, always: Bool)] = [
+            ("five_hour", .fiveHour, true),
+            ("seven_day", .weekly, true),
+            ("seven_day_opus", .weeklyModel("Opus"), false),
+            ("seven_day_sonnet", .weeklyModel("Sonnet"), false),
         ]
         for item in known where !windows.contains(where: { $0.id == item.key }) {
             guard let w = json[item.key] as? [String: Any], let used = jsonNumber(w["utilization"]) else { continue }
             let resets = (w["resets_at"] as? String).flatMap(DateParsing.iso8601)
             // 按模型区分的周额度只在实际使用过（有重置时间）时显示
             if !item.always && resets == nil { continue }
-            windows.append(QuotaWindow(id: item.key, label: item.label, usedPercent: used, resetsAt: resets,
+            windows.append(QuotaWindow(id: item.key, name: item.name, usedPercent: used, resetsAt: resets,
                                        weekly: item.key == "seven_day"))
         }
         guard !windows.isEmpty else { throw FetchError.badResponse }
@@ -116,17 +116,17 @@ enum ClaudeUsageClient {
             let model = ((limit["scope"] as? [String: Any])?["model"] as? [String: Any])?["display_name"] as? String
             switch kind {
             case "weekly_all":
-                return QuotaWindow(id: "seven_day", label: L("本周"), usedPercent: used, resetsAt: resets, weekly: true)
+                return QuotaWindow(id: "seven_day", name: .weekly, usedPercent: used, resetsAt: resets, weekly: true)
             case "weekly_scoped":
                 guard let model else { return nil }
                 let allowance = shares.first { jsonNumber($0["limit_index"]) == Double(index) }
                     .flatMap { jsonNumber($0["allowance_percent_of_weekly"]) }
-                return QuotaWindow(id: "seven_day_\(model.lowercased())", label: L("本周 \(model)"), usedPercent: used,
-                                   resetsAt: resets, note: allowance.map { L("最多用周额度的 \(Int($0))%") })
+                return QuotaWindow(id: "seven_day_\(model.lowercased())", name: .weeklyModel(model), usedPercent: used,
+                                   resetsAt: resets, allowance: allowance.map { Int($0) })
             default:
                 // 不认识的种类里只认 5 小时额度，其他的不知道怎么解释，宁可不显示
                 guard kind.contains("five_hour") || limit["group"] as? String == "session" else { return nil }
-                return QuotaWindow(id: "five_hour", label: L("5 小时"), usedPercent: used, resetsAt: resets)
+                return QuotaWindow(id: "five_hour", name: .fiveHour, usedPercent: used, resetsAt: resets)
             }
         }
     }

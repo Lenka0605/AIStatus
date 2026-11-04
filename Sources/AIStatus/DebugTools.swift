@@ -57,19 +57,20 @@ enum DebugTools {
         }
         if args.contains("--dump") { dump(store) }
         if let dir = value(after: "--snapshot") { snapshot(store, to: URL(fileURLWithPath: dir)) }
+        if let dir = value(after: "--switch-test") { switchTest(store, to: URL(fileURLWithPath: dir)) }
         exit(0)
     }
 
     private static func fillSample(_ store: Store, args: [String]) {
         let now = Date()
         store.claude.quota = ProviderQuota(plan: "Ultra", windows: [
-            QuotaWindow(id: "seven_day", label: L("本周"), usedPercent: 14, resetsAt: now.addingTimeInterval(2 * 86_400), weekly: true),
-            QuotaWindow(id: "seven_day_fable", label: L("本周 \("Fable")"), usedPercent: 0, resetsAt: now.addingTimeInterval(2 * 86_400),
-                        note: L("最多用周额度的 \(50)%")),
+            QuotaWindow(id: "seven_day", name: .weekly, usedPercent: 14, resetsAt: now.addingTimeInterval(2 * 86_400), weekly: true),
+            QuotaWindow(id: "seven_day_fable", name: .weeklyModel("Fable"), usedPercent: 0, resetsAt: now.addingTimeInterval(2 * 86_400),
+                        allowance: 50),
         ], credits: nil, source: .live, asOf: now)
         store.claude.setTodayUsed(2)
         store.codex.quota = ProviderQuota(plan: "Pro", windows: [
-            QuotaWindow(id: "secondary_window", label: L("本周"), usedPercent: 81, resetsAt: now.addingTimeInterval(6 * 86_400), weekly: true),
+            QuotaWindow(id: "secondary_window", name: .span(minutes: 10_080), usedPercent: 81, resetsAt: now.addingTimeInterval(6 * 86_400), weekly: true),
         ], credits: 37_463, source: .live, asOf: now)
         store.codex.setTodayUsed(50)
         store.claude.health = ServiceHealth(level: .degraded, summary: L("\("Claude Code")\(ServiceLevel.degraded.title)"), checkedAt: now)
@@ -198,6 +199,30 @@ enum DebugTools {
             try? rep.representation(using: .png, properties: [:])?.write(to: url)
         }
         window.orderOut(nil)
+    }
+
+    /// 同一个面板窗口开着，依次切换界面语言，每次截一张图：确认不用重新打开就能换语言
+    private static func switchTest(_ store: Store, to dir: URL) {
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let chrome = PanelChrome()
+        chrome.shown = true
+        let host = NSHostingController(rootView: PanelRoot(chrome: chrome, store: store, actions: PanelActions()))
+        host.sizingOptions = [.preferredContentSize]
+        let window = NSWindow(contentViewController: host)
+        window.styleMask = [.borderless]
+        window.appearance = NSAppearance(named: .aqua)
+        window.setFrameOrigin(NSPoint(x: -5000, y: -5000))
+        window.orderFrontRegardless()
+        for code in ["zh-Hans", "en", "vi", "zh-Hans"] {
+            LanguageState.shared.code = code
+            RunLoop.main.run(until: Date().addingTimeInterval(0.6))
+            if let view = window.contentView, let rep = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+                view.cacheDisplay(in: view.bounds, to: rep)
+                try? rep.representation(using: .png, properties: [:])?.write(to: dir.appendingPathComponent("switch-\(code).png"))
+            }
+        }
+        window.orderOut(nil)
+        print("已保存到 \(dir.path)")
     }
 
     private static func makeIconset(at dir: URL) {

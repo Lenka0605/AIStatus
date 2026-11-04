@@ -77,6 +77,12 @@ final class Store {
         Task { await refresh(force: true) }
     }
 
+    /// 换了界面语言：错误提示、服务状态摘要是查询时生成的文字，重新查一次换成新语言
+    func languageChanged() {
+        lastStatusCheck = .distantPast
+        refreshNow()
+    }
+
     func reloadConfiguredProviders() {
         for provider in AdminProvider.allCases {
             if Preferences.adminKey(for: provider) == nil {

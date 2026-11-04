@@ -122,19 +122,28 @@ enum Fmt {
 
     // 用模板而不是写死格式：月日的先后、星期的写法按界面语言来（中文「10/30 周五」，越南语「T6, 30/10」）。
     // 时间一律 24 小时制
-    private static let weekdayFormatter = formatter("EEE HH:mm", template: "EEEHHmm")
-    private static let weekdayOnlyFormatter = formatter("EEE", template: "EEE")
-    private static let timeFormatter = formatter("HH:mm", template: "HHmm")
-    private static let dayTimeFormatter = formatter("M/d HH:mm", template: "MdHHmm")
-    private static let dateFormatter = formatter("M/d", template: "Md")
-    private static let dayWeekdayFormatter = formatter("M/d EEE", template: "MdEEE")
+    private static var weekdayFormatter: DateFormatter { formatter("EEE HH:mm", template: "EEEHHmm") }
+    private static var weekdayOnlyFormatter: DateFormatter { formatter("EEE", template: "EEE") }
+    private static var timeFormatter: DateFormatter { formatter("HH:mm", template: "HHmm") }
+    private static var dayTimeFormatter: DateFormatter { formatter("M/d HH:mm", template: "MdHHmm") }
+    private static var dateFormatter: DateFormatter { formatter("M/d", template: "Md") }
+    private static var dayWeekdayFormatter: DateFormatter { formatter("M/d EEE", template: "MdEEE") }
 
-    /// 中文用原来的固定格式（模板生成的「11/4周三」中间没有空格）
+    private static let formatterLock = NSLock()
+    nonisolated(unsafe) private static var formatters: [String: DateFormatter] = [:]
+
+    /// 按界面语言建好后缓存，换语言后用新的。中文用原来的固定格式（模板生成的「11/4周三」中间没有空格）
     private static func formatter(_ chinese: String, template: String) -> DateFormatter {
-        let f = DateFormatter()
-        f.locale = AppLanguage.locale
-        if AppLanguage.isChinese { f.dateFormat = chinese } else { f.setLocalizedDateFormatFromTemplate(template) }
-        return f
+        let code = AppLanguage.code
+        return formatterLock.withLock {
+            let key = code + "|" + template
+            if let cached = formatters[key] { return cached }
+            let f = DateFormatter()
+            f.locale = Locale(identifier: code)
+            if code == "zh-Hans" { f.dateFormat = chinese } else { f.setLocalizedDateFormatFromTemplate(template) }
+            formatters[key] = f
+            return f
+        }
     }
 }
 
