@@ -29,6 +29,7 @@ final class SettingsModel {
     var appearance = Preferences.appearance
     var hotKey = Preferences.hotKey
     var hotKeyNote: String?
+    var autoCheckUpdates = Preferences.autoCheckUpdates
 
     func load() {
         drafts = AdminProvider.allCases.map { p in
@@ -45,6 +46,7 @@ final class SettingsModel {
         quotaRefresh = Preferences.quotaRefresh
         appearance = Preferences.appearance
         hotKey = Preferences.hotKey
+        autoCheckUpdates = Preferences.autoCheckUpdates
         Task { await refreshNotifyNote() }
     }
 
@@ -91,10 +93,15 @@ final class SettingsModel {
         appearance = mode
     }
 
+    func setAutoCheckUpdates(_ on: Bool) {
+        Preferences.autoCheckUpdates = on
+        autoCheckUpdates = on
+    }
+
     func setHotKey(_ option: HotKeyOption) {
         Preferences.hotKey = option
         hotKey = option
-        hotKeyNote = GlobalHotKey.apply(option) ? nil : "\(option.title) 注册失败，可能已被其他应用占用，换一个试试"
+        hotKeyNote = GlobalHotKey.apply(option) ? nil : L("\(option.title) 注册失败，可能已被其他应用占用，换一个试试")
     }
 
     private func requestNotifications() {
@@ -105,7 +112,7 @@ final class SettingsModel {
 
     private func refreshNotifyNote() async {
         notifyNote = await Notifier.shared.isDenied()
-            ? "通知权限已关闭，请在「系统设置 › 通知 › AI 余量」里允许"
+            ? L("通知权限已关闭，请在「系统设置 › 通知 › AI 余量」里允许")
             : nil
     }
 
@@ -121,7 +128,7 @@ final class SettingsModel {
             if let value = Double(cleaned), value >= 0 { balances[provider] = value } else { invalid.append(provider.title) }
         }
         guard invalid.isEmpty else {
-            saveError = "\(invalid.joined(separator: "、")) 的余额格式不对，请填美元金额，例如 120.50"
+            saveError = L("\(invalid.joined(separator: L("、"))) 的余额格式不对，请填美元金额，例如 120.50")
             return
         }
 
@@ -137,7 +144,7 @@ final class SettingsModel {
         store.refreshNow()
         load()
         // 先让提示停留一会儿再关窗口，否则一闪而过看不清
-        withAnimation(.spring(duration: 0.35, bounce: 0.25)) { toast = "设置已保存" }
+        withAnimation(.spring(duration: 0.35, bounce: 0.25)) { toast = L("设置已保存") }
         Task {
             try? await Task.sleep(for: .seconds(1.1))
             close()
@@ -155,7 +162,7 @@ final class SettingsModel {
         let status = LaunchAtLogin.set(on)
         launchAtLogin = status == .enabled
         if status == .requiresApproval {
-            loginNote = "需要在「系统设置 › 通用 › 登录项」里允许 AI 余量"
+            loginNote = L("需要在「系统设置 › 通用 › 登录项」里允许 AI 余量")
             SMAppService.openSystemSettingsLoginItems()
         } else {
             loginNote = nil
@@ -201,19 +208,19 @@ struct SettingsView: View {
     private var sections: some View {
         @Bindable var model = model
         return VStack(alignment: .leading, spacing: 18) {
-            section("API 余额",
-                    footnote: "余额 = 填写的余额 − 之后的花费，花费按 UTC 日统计，有几分钟延迟；DeepSeek 直接查账户余额，花费由余额变化推算。Key 只保存在本机钥匙串。") {
+            section(L("API 余额"),
+                    footnote: L("余额 = 填写的余额 − 之后的花费，花费按 UTC 日统计，有几分钟延迟；DeepSeek 直接查账户余额，花费由余额变化推算。Key 只保存在本机钥匙串。")) {
                 ForEach(Array(AdminProvider.allCases.enumerated()), id: \.element) { index, provider in
                     if index > 0 { CardDivider() }
                     providerFields(provider, draft: $model.drafts[index])
                 }
             }
 
-            section("提醒", footnote: model.notifyNote
-                    ?? "额度剩余低于 20% 和 5% 时各提醒一次，API 余额不到 $5（或 ¥35）时也会提醒；用掉一半以上的额度，到重置时间会提醒你已恢复。Codex 全员重置信号来自 didcodexreset.com（非官方，根据 Tibo 的推文判断）。点通知可以打开面板。") {
-                toggleRow("额度和余额不足提醒", isOn: Binding(get: { model.notifyLow }, set: { model.setNotifyLow($0) }))
-                toggleRow("额度恢复提醒", isOn: Binding(get: { model.notifyReset }, set: { model.setNotifyReset($0) }))
-                toggleRow("Codex 全员重置预告和完成", isOn: Binding(get: { model.notifyResetSignal }, set: { model.setNotifyResetSignal($0) }))
+            section(L("提醒"), footnote: model.notifyNote
+                    ?? L("额度剩余低于 20% 和 5% 时各提醒一次，API 余额不到 $5（或 ¥35）时也会提醒；用掉一半以上的额度，到重置时间会提醒你已恢复。Codex 全员重置信号来自 didcodexreset.com（非官方，根据 Tibo 的推文判断）。点通知可以打开面板。")) {
+                toggleRow(L("额度和余额不足提醒"), isOn: Binding(get: { model.notifyLow }, set: { model.setNotifyLow($0) }))
+                toggleRow(L("额度恢复提醒"), isOn: Binding(get: { model.notifyReset }, set: { model.setNotifyReset($0) }))
+                toggleRow(L("Codex 全员重置预告和完成"), isOn: Binding(get: { model.notifyResetSignal }, set: { model.setNotifyResetSignal($0) }))
                 HStack(spacing: 16) {
                     Button("发送一条测试通知") { model.sendTestNotification() }
                     if model.notifyNote != nil {
@@ -224,21 +231,59 @@ struct SettingsView: View {
                 .font(.system(size: 12))
             }
 
-            section("通用", footnote: model.loginNote ?? model.hotKeyNote
-                    ?? "额度在后台按上面的间隔自动更新，状态栏数字跟着变；「仅在使用时」只在你正在用 Claude Code / Codex 时每 10 分钟查一次。服务状态和 Codex 重置信号每 5 分钟检查一次。查询太频繁被限流时会自动暂停，到时间再继续。") {
-                pickerRow("外观", selection: Binding(get: { model.appearance }, set: { model.setAppearance($0) }),
+            section(L("通用"), footnote: model.loginNote ?? model.hotKeyNote
+                    ?? L("额度在后台按上面的间隔自动更新，状态栏数字跟着变；「仅在使用时」只在你正在用 Claude Code / Codex 时每 10 分钟查一次。服务状态和 Codex 重置信号每 5 分钟检查一次。查询太频繁被限流时会自动暂停，到时间再继续。")) {
+                pickerRow(L("外观"), selection: Binding(get: { model.appearance }, set: { model.setAppearance($0) }),
                           options: AppearanceMode.allCases, title: \.title, style: .segmented)
-                toggleRow("开机自动启动", isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) }))
-                toggleRow("状态栏显示剩余百分比", isOn: Binding(get: { model.menuBarPercent }, set: { model.setMenuBarPercent($0) }))
-                pickerRow("自动刷新额度", selection: Binding(get: { model.quotaRefresh }, set: { model.setQuotaRefresh($0) }),
+                toggleRow(L("开机自动启动"), isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) }))
+                toggleRow(L("状态栏显示剩余百分比"), isOn: Binding(get: { model.menuBarPercent }, set: { model.setMenuBarPercent($0) }))
+                pickerRow(L("自动刷新额度"), selection: Binding(get: { model.quotaRefresh }, set: { model.setQuotaRefresh($0) }),
                           options: QuotaRefresh.allCases, title: \.title, width: 120)
-                pickerRow("打开面板的快捷键", selection: Binding(get: { model.hotKey }, set: { model.setHotKey($0) }),
+                pickerRow(L("打开面板的快捷键"), selection: Binding(get: { model.hotKey }, set: { model.setHotKey($0) }),
                           options: HotKeyOption.allCases, title: \.title, width: 120)
+            }
+
+            section(L("关于"), footnote: updateNote) {
+                HStack {
+                    Text(L("当前版本 \(Updater.currentVersion)")).font(.system(size: 13)).foregroundStyle(Theme.text)
+                    Spacer()
+                    Button(L("GitHub 主页")) { NSWorkspace.shared.open(URL(string: "https://github.com/\(Updater.repo)")!) }
+                        .buttonStyle(.link)
+                        .font(.system(size: 12))
+                    if let release = updater.available {
+                        Button(L("更新到 \(release.version)")) { Task { await updater.install() } }
+                            .controlSize(.small)
+                            .disabled(updater.isBusy)
+                    } else {
+                        Button(L("检查更新")) { Task { await updater.check(manual: true) } }
+                            .controlSize(.small)
+                            .disabled(updater.isBusy)
+                    }
+                }
+                toggleRow(L("自动检查更新"), isOn: Binding(get: { model.autoCheckUpdates }, set: { model.setAutoCheckUpdates($0) }))
             }
         }
         .padding([.horizontal, .top], 20)
         .padding(.bottom, 10)
         .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var updater: Updater { Updater.shared }
+
+    private var updateNote: String {
+        switch updater.phase {
+        case .checking: return L("正在检查更新…")
+        case .downloading: return L("正在下载新版本…")
+        case .installing: return L("正在安装，完成后会自动重新打开")
+        case .failed(let message): return message
+        case .upToDate where updater.available == nil:
+            return L("已是最新版本（\(Fmt.clock(updater.lastChecked ?? Date())) 检查）")
+        default:
+            if let release = updater.available {
+                return L("新版本 \(release.version) 已发布。点「更新」会下载并替换当前版本，然后自动重新打开")
+            }
+            return L("每 6 小时到 GitHub 检查一次新版本，有更新时通知你")
+        }
     }
 
     private var saveBar: some View {
@@ -277,12 +322,12 @@ struct SettingsView: View {
             }
             labeled(provider.keyName) {
                 SecureField(provider.keyName, text: draft.key,
-                            prompt: Text(draft.wrappedValue.hasKey ? "已保存，留空则不修改" : provider.keyHint))
+                            prompt: Text(draft.wrappedValue.hasKey ? L("已保存，留空则不修改") : provider.keyHint))
                     .textFieldStyle(.roundedBorder)
                     .labelsHidden()
             }
             if !provider.reportsBalance {
-                labeled("当前余额") {
+                labeled(L("当前余额")) {
                     TextField("当前余额", text: draft.balance, prompt: Text(balanceHint(draft.wrappedValue)))
                         .textFieldStyle(.roundedBorder)
                         .labelsHidden()
@@ -351,7 +396,7 @@ struct SettingsView: View {
     }
 
     private func balanceHint(_ draft: SettingsModel.Draft) -> String {
-        guard let anchor = draft.anchor else { return "美元，例如 120.50（留空只显示花费）" }
-        return "已设为 \(Fmt.usd(anchor.balance))（\(Fmt.date(anchor.setAt ?? anchor.day))），留空不修改"
+        guard let anchor = draft.anchor else { return L("美元，例如 120.50（留空只显示花费）") }
+        return L("已设为 \(Fmt.usd(anchor.balance))（\(Fmt.date(anchor.setAt ?? anchor.day))），留空不修改")
     }
 }

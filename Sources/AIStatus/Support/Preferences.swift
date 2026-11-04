@@ -68,6 +68,18 @@ enum Preferences {
         set { defaults.set(newValue.rawValue, forKey: "appearance") }
     }
 
+    /// 后台定时检查 GitHub 上有没有新版本
+    static var autoCheckUpdates: Bool {
+        get { defaults.object(forKey: "update.autoCheck") as? Bool ?? true }
+        set { defaults.set(newValue, forKey: "update.autoCheck") }
+    }
+
+    /// 已经发过「有新版本」通知的版本号，同一个版本只提醒一次
+    static var notifiedUpdate: String? {
+        get { defaults.string(forKey: "update.notified") }
+        set { defaults.set(newValue, forKey: "update.notified") }
+    }
+
     static var hotKey: HotKeyOption {
         get { defaults.string(forKey: "hotKey").flatMap(HotKeyOption.init(rawValue:)) ?? .optionCommandA }
         set { defaults.set(newValue.rawValue, forKey: "hotKey") }
@@ -83,10 +95,10 @@ enum QuotaRefresh: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .every2: return "每 2 分钟"
-        case .every5: return "每 5 分钟"
-        case .every10: return "每 10 分钟"
-        case .whenActive: return "仅在使用时"
+        case .every2: return L("每 2 分钟")
+        case .every5: return L("每 5 分钟")
+        case .every10: return L("每 10 分钟")
+        case .whenActive: return L("仅在使用时")
         }
     }
 
@@ -108,9 +120,9 @@ enum AppearanceMode: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .auto: return "自动"
-        case .light: return "浅色"
-        case .dark: return "深色"
+        case .auto: return L("自动")
+        case .light: return L("浅色")
+        case .dark: return L("深色")
         }
     }
 

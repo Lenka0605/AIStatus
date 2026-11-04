@@ -129,7 +129,7 @@ enum CostClient {
     private static func send(_ req: URLRequest, keyName: String = "Admin Key") async throws -> [String: Any] {
         let (data, response) = try await URLSession.shared.data(for: req)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-        if status == 401 || status == 403 { throw FetchError.unauthorized("\(keyName) 无效或没有权限") }
+        if status == 401 || status == 403 { throw FetchError.unauthorized(L("\(keyName) 无效或没有权限")) }
         guard status == 200 else { throw FetchError.http(status) }
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw FetchError.badResponse

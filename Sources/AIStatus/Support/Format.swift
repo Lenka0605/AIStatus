@@ -41,13 +41,13 @@ enum Fmt {
         guard let date else { return nil }
         let s = date.timeIntervalSince(now)
         if s <= 0 { return nil }
-        if s < 3600 { return "\(max(1, Int(s / 60))) 分钟后重置" }
+        if s < 3600 { return L("\(max(1, Int(s / 60))) 分钟后重置") }
         if s < 86_400 {
             let h = Int(s / 3600)
             let m = Int(s.truncatingRemainder(dividingBy: 3600) / 60)
-            return m > 0 ? "\(h) 小时 \(m) 分后重置" : "\(h) 小时后重置"
+            return m > 0 ? L("\(h) 小时 \(m) 分后重置") : L("\(h) 小时后重置")
         }
-        return weekdayFormatter.string(from: date) + " 重置"
+        return L("\(weekdayFormatter.string(from: date)) 重置")
     }
 
     /// 10/26
@@ -67,10 +67,10 @@ enum Fmt {
         let cal = Calendar.current
         let offset = cal.dateComponents([.day], from: cal.startOfDay(for: now), to: cal.startOfDay(for: date)).day ?? 99
         switch offset {
-        case -1: return "昨天"
-        case 0: return "今天"
-        case 1: return "明天"
-        case 2: return "后天"
+        case -1: return L("昨天")
+        case 0: return L("今天")
+        case 1: return L("明天")
+        case 2: return L("后天")
         default: return (weekday ? dayWeekdayFormatter : dateFormatter).string(from: date)
         }
     }
@@ -93,10 +93,10 @@ enum Fmt {
     /// 「刚刚」「6 分钟前」「3 小时前」「2 天前」
     static func ago(_ date: Date, now: Date = Date()) -> String {
         let s = now.timeIntervalSince(date)
-        if s < 60 { return "刚刚" }
-        if s < 3600 { return "\(Int(s / 60)) 分钟前" }
-        if s < 86_400 { return "\(Int(s / 3600)) 小时前" }
-        return "\(Int(s / 86_400)) 天前"
+        if s < 60 { return L("刚刚") }
+        if s < 3600 { return L("\(Int(s / 60)) 分钟前") }
+        if s < 86_400 { return L("\(Int(s / 3600)) 小时前") }
+        return L("\(Int(s / 86_400)) 天前")
     }
 
     private static let usdFormatter: NumberFormatter = {
@@ -120,17 +120,20 @@ enum Fmt {
         return f
     }()
 
-    private static let weekdayFormatter = formatter("EEE HH:mm")
-    private static let weekdayOnlyFormatter = formatter("EEE")
-    private static let timeFormatter = formatter("HH:mm")
-    private static let dayTimeFormatter = formatter("M/d HH:mm")
-    private static let dateFormatter = formatter("M/d")
-    private static let dayWeekdayFormatter = formatter("M/d EEE")
+    // 用模板而不是写死格式：月日的先后、星期的写法按界面语言来（中文「10/30 周五」，越南语「T6, 30/10」）。
+    // 时间一律 24 小时制
+    private static let weekdayFormatter = formatter("EEE HH:mm", template: "EEEHHmm")
+    private static let weekdayOnlyFormatter = formatter("EEE", template: "EEE")
+    private static let timeFormatter = formatter("HH:mm", template: "HHmm")
+    private static let dayTimeFormatter = formatter("M/d HH:mm", template: "MdHHmm")
+    private static let dateFormatter = formatter("M/d", template: "Md")
+    private static let dayWeekdayFormatter = formatter("M/d EEE", template: "MdEEE")
 
-    private static func formatter(_ format: String) -> DateFormatter {
+    /// 中文用原来的固定格式（模板生成的「11/4周三」中间没有空格）
+    private static func formatter(_ chinese: String, template: String) -> DateFormatter {
         let f = DateFormatter()
-        f.locale = Locale(identifier: "zh_CN")
-        f.dateFormat = format
+        f.locale = AppLanguage.locale
+        if AppLanguage.isChinese { f.dateFormat = chinese } else { f.setLocalizedDateFormatFromTemplate(template) }
         return f
     }
 }

@@ -48,7 +48,7 @@ enum ClaudeUsageClient {
               let json = try? JSONSerialization.jsonObject(with: Data(raw.utf8)) as? [String: Any],
               let oauth = json["claudeAiOauth"] as? [String: Any],
               let token = oauth["accessToken"] as? String
-        else { throw FetchError.noCredentials("本机未登录 Claude Code，登录后自动显示") }
+        else { throw FetchError.noCredentials(L("本机未登录 Claude Code，登录后自动显示")) }
         return Credentials(
             accessToken: token,
             expiresAt: jsonNumber(oauth["expiresAt"]).map { Date(timeIntervalSince1970: $0 / 1000) },
@@ -60,7 +60,7 @@ enum ClaudeUsageClient {
     static func fetchRaw(_ creds: Credentials) async throws -> Data {
         // 不自己刷新令牌：刷新会让 Claude Code 保存的凭证失效。用一下 Claude Code 就会自动续期。
         if let exp = creds.expiresAt, exp < Date() {
-            throw FetchError.expired("登录凭证已过期，使用一次 Claude Code 后自动恢复")
+            throw FetchError.expired(L("登录凭证已过期，使用一次 Claude Code 后自动恢复"))
         }
         var req = URLRequest(url: endpoint, timeoutInterval: 15)
         req.setValue("Bearer \(creds.accessToken)", forHTTPHeaderField: "Authorization")
@@ -69,7 +69,7 @@ enum ClaudeUsageClient {
         let (data, response) = try await URLSession.shared.data(for: req)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         if status == 401 || status == 403 {
-            throw FetchError.unauthorized("凭证无效，使用一次 Claude Code 后自动恢复")
+            throw FetchError.unauthorized(L("凭证无效，使用一次 Claude Code 后自动恢复"))
         }
         if status == 429, let http = response as? HTTPURLResponse { throw FetchError.rateLimited(http) }
         guard status == 200 else { throw FetchError.http(status) }
@@ -83,10 +83,10 @@ enum ClaudeUsageClient {
         var windows = parseLimits(json)
         // 旧字段：没有 limits 的旧接口，或者 limits 里没有的额度（如未验证的 Ultra 账户临时的 5 小时额度）
         let known: [(key: String, label: String, always: Bool)] = [
-            ("five_hour", "5 小时", true),
-            ("seven_day", "本周", true),
-            ("seven_day_opus", "本周 Opus", false),
-            ("seven_day_sonnet", "本周 Sonnet", false),
+            ("five_hour", L("5 小时"), true),
+            ("seven_day", L("本周"), true),
+            ("seven_day_opus", L("本周 \("Opus")"), false),
+            ("seven_day_sonnet", L("本周 \("Sonnet")"), false),
         ]
         for item in known where !windows.contains(where: { $0.id == item.key }) {
             guard let w = json[item.key] as? [String: Any], let used = jsonNumber(w["utilization"]) else { continue }
@@ -116,17 +116,17 @@ enum ClaudeUsageClient {
             let model = ((limit["scope"] as? [String: Any])?["model"] as? [String: Any])?["display_name"] as? String
             switch kind {
             case "weekly_all":
-                return QuotaWindow(id: "seven_day", label: "本周", usedPercent: used, resetsAt: resets, weekly: true)
+                return QuotaWindow(id: "seven_day", label: L("本周"), usedPercent: used, resetsAt: resets, weekly: true)
             case "weekly_scoped":
                 guard let model else { return nil }
                 let allowance = shares.first { jsonNumber($0["limit_index"]) == Double(index) }
                     .flatMap { jsonNumber($0["allowance_percent_of_weekly"]) }
-                return QuotaWindow(id: "seven_day_\(model.lowercased())", label: "本周 \(model)", usedPercent: used,
-                                   resetsAt: resets, note: allowance.map { "最多用周额度的 \(Int($0))%" })
+                return QuotaWindow(id: "seven_day_\(model.lowercased())", label: L("本周 \(model)"), usedPercent: used,
+                                   resetsAt: resets, note: allowance.map { L("最多用周额度的 \(Int($0))%") })
             default:
                 // 不认识的种类里只认 5 小时额度，其他的不知道怎么解释，宁可不显示
                 guard kind.contains("five_hour") || limit["group"] as? String == "session" else { return nil }
-                return QuotaWindow(id: "five_hour", label: "5 小时", usedPercent: used, resetsAt: resets)
+                return QuotaWindow(id: "five_hour", label: L("5 小时"), usedPercent: used, resetsAt: resets)
             }
         }
     }

@@ -278,12 +278,12 @@ final class Store {
         defer { defaults.set(Array(seen.suffix(30)), forKey: "signal.seen") }
 
         if let next = signal.next, isNew(next.post.id), next.end > Date() {
-            Notifier.shared.resetSignal(next.post, title: "Codex 即将全员重置", body: "Tibo 预告：\(next.whenTexts()[0])")
+            Notifier.shared.resetSignal(next.post, title: L("Codex 即将全员重置"), body: L("Tibo 预告：\(next.whenTexts()[0])"))
         }
         // 电脑睡了很久才醒的话，太早的重置就不提醒了
         if let latest = signal.latest, isNew(latest.id), Date().timeIntervalSince(latest.at) < 6 * 3600 {
-            Notifier.shared.resetSignal(latest, title: "Codex 全员额度已重置",
-                                        body: "Tibo 在 \(Fmt.clock(latest.at)) 宣布重置了所有人的额度，可以放开用了")
+            Notifier.shared.resetSignal(latest, title: L("Codex 全员额度已重置"),
+                                        body: L("Tibo 在 \(Fmt.clock(latest.at)) 宣布重置了所有人的额度，可以放开用了"))
             Notifier.shared.cancelResetReminders(key: "codex")   // 原来排好的「额度已恢复」已经没意义了
             await fetchCodex()
             lastUpdated = Date()
@@ -295,7 +295,7 @@ final class Store {
         guard case FetchError.rateLimited(let retryAfter) = error else { return error.localizedDescription }
         let until = Date().addingTimeInterval(retryAfter)
         blockedUntil[key] = until
-        return "查询太频繁，\(Fmt.clock(until)) 前暂停查询"
+        return L("查询太频繁，\(Fmt.clock(until)) 前暂停查询")
     }
 
     /// 只用联网拿到的实时数据、且只看周额度；本地日志里的额度可能是几天前的

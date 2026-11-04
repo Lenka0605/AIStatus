@@ -164,9 +164,9 @@ enum FetchError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noCredentials(let s), .expired(let s), .unauthorized(let s): return s
-        case .http(let code): return "请求失败（HTTP \(code)）"
-        case .rateLimited: return "查询太频繁，请稍后再试"
-        case .badResponse: return "返回数据格式无法识别"
+        case .http(let code): return L("请求失败（HTTP \(code)）")
+        case .rateLimited: return L("查询太频繁，请稍后再试")
+        case .badResponse: return L("返回数据格式无法识别")
         }
     }
 }

@@ -35,7 +35,7 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
     func sendTest() {
         requestAuthorization {
             Task { @MainActor in
-                Notifier.shared.post(id: "test", title: "AI 余量", body: "通知已开启：额度不足或恢复时会这样提醒你")
+                Notifier.shared.post(id: "test", title: L("AI 余量"), body: L("通知已开启：额度不足或恢复时会这样提醒你"))
             }
         }
     }
@@ -73,11 +73,11 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
                 ? Fmt.usd(spend.remaining ?? 0)
                 : spend.balances.map { Fmt.money($0.total, currency: $0.currency) }.joined(separator: " + ")
             if level == 2 {
-                post(id: "balance.\(provider.rawValue)", title: "\(provider.title) 余额不足，API 已无法调用",
-                     body: "账户余额 \(balance)，充值后才能继续调用")
+                post(id: "balance.\(provider.rawValue)", title: L("\(provider.title) 余额不足，API 已无法调用"),
+                     body: L("账户余额 \(balance)，充值后才能继续调用"))
             } else {
-                post(id: "balance.\(provider.rawValue)", title: "\(provider.title) API 余额不多了",
-                     body: spend.balances.isEmpty ? "估计还剩 \(balance)（按填写的余额减去之后的花费）" : "账户余额只剩 \(balance)")
+                post(id: "balance.\(provider.rawValue)", title: L("\(provider.title) API 余额不多了"),
+                     body: spend.balances.isEmpty ? L("估计还剩 \(balance)（按填写的余额减去之后的花费）") : L("账户余额只剩 \(balance)"))
             }
         }
     }
@@ -101,6 +101,13 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         post(id: "signal.\(signal.id)", title: title, body: body)
     }
 
+    /// 发现新版本时提醒一次（不受额度提醒开关影响，只看系统通知权限）
+    func updateAvailable(version: String) {
+        guard Preferences.notifiedUpdate != version else { return }
+        Preferences.notifiedUpdate = version
+        post(id: "update", title: L("AI 余量有新版本 \(version)"), body: L("打开面板或设置即可一键更新"))
+    }
+
     private func checkLow(key: String, name: String, window: QuotaWindow) {
         let remaining = window.remainingPercent
         guard let level = Self.lowLevels.filter({ remaining < $0 }).min() else { return }
@@ -112,8 +119,8 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         sent[slot] = [period, Int(level)]
         UserDefaults.standard.set(sent, forKey: "notify.lowSent")
         // 「本周额度」「本周 Fable 额度」：标签以英文结尾时加个空格
-        let label = window.label + (window.label.last?.isASCII == true ? " " : "")
-        post(id: "low.\(slot)", title: "\(name) \(label)额度只剩 \(Int(remaining.rounded()))%",
+        let label = AppLanguage.isChinese && window.label.last?.isASCII == true ? window.label + " " : window.label
+        post(id: "low.\(slot)", title: L("\(name) \(label)额度只剩 \(Int(remaining.rounded()))%"),
              body: Fmt.reset(window.resetsAt) ?? "")
     }
 
@@ -121,8 +128,8 @@ final class Notifier: NSObject, UNUserNotificationCenterDelegate {
         guard let center, window.remainingPercent < Self.resetThreshold,
               let resetsAt = window.resetsAt, resetsAt > Date() else { return }
         let content = UNMutableNotificationContent()
-        content.title = "\(name) \(window.label)额度已恢复"
-        content.body = "额度已经重置，可以继续用了"
+        content.title = L("\(name) \(window.label)额度已恢复")
+        content.body = L("额度已经重置，可以继续用了")
         content.sound = .default
         // 晚 30 秒发，确保服务器那边确实已经重置；同一个 id 会覆盖之前排的
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: resetsAt.timeIntervalSinceNow + 30, repeats: false)

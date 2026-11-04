@@ -10,7 +10,7 @@ enum HotKeyOption: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .off: return "不使用"
+        case .off: return L("不使用")
         case .optionCommandA: return "⌥⌘A"
         case .controlOptionA: return "⌃⌥A"
         case .controlOptionCommandA: return "⌃⌥⌘A"

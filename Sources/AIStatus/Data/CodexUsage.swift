@@ -30,7 +30,7 @@ enum CodexUsageClient {
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let tokens = json["tokens"] as? [String: Any],
               let accessToken = tokens["access_token"] as? String
-        else { throw FetchError.noCredentials("本机未登录 Codex，登录后自动显示") }
+        else { throw FetchError.noCredentials(L("本机未登录 Codex，登录后自动显示")) }
 
         var req = URLRequest(url: endpoint, timeoutInterval: 15)
         req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -42,7 +42,7 @@ enum CodexUsageClient {
         let (body, response) = try await URLSession.shared.data(for: req)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         if status == 401 || status == 403 {
-            throw FetchError.unauthorized("Codex 凭证已过期，使用一次 Codex 后自动恢复")
+            throw FetchError.unauthorized(L("Codex 凭证已过期，使用一次 Codex 后自动恢复"))
         }
         if status == 429, let http = response as? HTTPURLResponse { throw FetchError.rateLimited(http) }
         guard status == 200 else { throw FetchError.http(status) }
@@ -88,12 +88,12 @@ enum CodexUsageClient {
     }
 
     static func windowLabel(minutes: Int?) -> String {
-        guard let minutes else { return "额度" }
-        if isWeekly(minutes) { return "本周" }
+        guard let minutes else { return L("额度") }
+        if isWeekly(minutes) { return L("本周") }
         switch minutes {
-        case 1_380...: return "\(Int((Double(minutes) / 1_440).rounded())) 天"
-        case 55...: return "\(Int((Double(minutes) / 60).rounded())) 小时"
-        default: return "\(minutes) 分钟"
+        case 1_380...: return L("\(Int((Double(minutes) / 1_440).rounded())) 天")
+        case 55...: return L("\(Int((Double(minutes) / 60).rounded())) 小时")
+        default: return L("\(minutes) 分钟")
         }
     }
 

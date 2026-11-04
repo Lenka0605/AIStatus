@@ -214,9 +214,9 @@ struct StatusPill: View {
 
     private var text: String {
         switch kind {
-        case .ok: return "正常"
-        case .busy: return "更新中"
-        case .warn: return "部分异常"
+        case .ok: return L("正常")
+        case .busy: return L("更新中")
+        case .warn: return L("部分异常")
         }
     }
 }
@@ -296,10 +296,10 @@ struct TodaySummary: View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 8) {
                 if let todayUsed {
-                    StatTile(icon: "calendar", title: "今日已用周额度", value: Fmt.percent(todayUsed))
+                    StatTile(icon: "calendar", title: L("今日已用周额度"), value: Fmt.percent(todayUsed))
                         .help("根据服务器额度计算，包含网页、云端任务、手机和其他电脑上的使用")
                 }
-                StatTile(icon: "cpu", title: "本机今日 Token", value: Fmt.tokens(tokens.total))
+                StatTile(icon: "cpu", title: L("本机今日 Token"), value: Fmt.tokens(tokens.total))
             }
             Text(caption)
                 .font(.system(size: 11))
@@ -310,11 +310,11 @@ struct TodaySummary: View {
     }
 
     private var caption: String {
-        if tokens.total == 0 { return "这台电脑今天还没有使用" }
+        if tokens.total == 0 { return L("这台电脑今天还没有使用") }
         let known = tokens.total - tokens.other
-        if known == 0 { return "来自运行日志，只有总数，可能少算" }
-        let detail = "输入 \(Fmt.tokens(tokens.input)) · 输出 \(Fmt.tokens(tokens.output)) · 缓存 \(Fmt.tokens(tokens.cache))"
-        return tokens.other > 0 ? detail + " · 其他 \(Fmt.tokens(tokens.other))" : detail
+        if known == 0 { return L("来自运行日志，只有总数，可能少算") }
+        let detail = L("输入 \(Fmt.tokens(tokens.input)) · 输出 \(Fmt.tokens(tokens.output)) · 缓存 \(Fmt.tokens(tokens.cache))")
+        return tokens.other > 0 ? detail + " · " + L("其他 \(Fmt.tokens(tokens.other))") : detail
     }
 
 }
@@ -445,7 +445,7 @@ struct ServiceNotice: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(health.original.map { "原文：\($0)\n点击打开官方状态页" } ?? "打开官方状态页")
+        .help(health.original.map { L("原文：\($0)\n点击打开官方状态页") } ?? L("打开官方状态页"))
     }
 }
 
@@ -475,14 +475,14 @@ struct ResetSignalTile: View {
                 // 两个标签字数相同，中文等宽，所以不用 Grid 也能对齐。
                 // 时间有从详细到简略几种说法，ViewThatFits 挑第一个一行放得下的，始终不换行
                 VStack(alignment: .leading, spacing: 4) {
-                    row("上次全员重置") {
+                    row(L("上次全员重置")) {
                         ViewThatFits(in: .horizontal) {
-                            ForEach(latest.isEmpty ? ["暂无记录"] : latest, id: \.self) { text in
+                            ForEach(latest.isEmpty ? [L("暂无记录")] : latest, id: \.self) { text in
                                 Text(text).foregroundStyle(Theme.text).lineLimit(1)
                             }
                         }
                     }
-                    row("下次全员重置") {
+                    row(L("下次全员重置")) {
                         ViewThatFits(in: .horizontal) {
                             ForEach(next.texts, id: \.self) { text in
                                 nextLine(text, kind: next.kind, badge: true)
@@ -525,7 +525,7 @@ struct ResetSignalTile: View {
                 .fontWeight(scheduled ? .semibold : .regular)
                 .lineLimit(1)
             if badge && kind != .unknown {
-                Text(scheduled ? "预告" : "估算")
+                Text(scheduled ? L("预告") : L("估算"))
                     .font(.system(size: 9.5, weight: .semibold))
                     .foregroundStyle(scheduled ? tint : Theme.secondaryText)
                     .padding(.horizontal, 5)
@@ -539,20 +539,20 @@ struct ResetSignalTile: View {
     private func help(now: Date) -> String {
         var lines: [String] = []
         if let latest = signal.latest {
-            lines.append("上次全员重置：\(Fmt.dayTime(latest.at, now: now))")
-            if let text = latest.text { lines.append("上次 Tibo 说：\(text)") }
+            lines.append(L("上次全员重置：\(Fmt.dayTime(latest.at, now: now))"))
+            if let text = latest.text { lines.append(L("上次 Tibo 说：\(text)")) }
         }
         if let next = signal.next {
             // 面板里可能只放得下简略说法，这里给完整时间段
-            lines.append("预告时间：\(next.whenTexts(now: now)[0])")
-            if let text = next.post.text { lines.append("Tibo 预告原话：\(text)") }
+            lines.append(L("预告时间：\(next.whenTexts(now: now)[0])"))
+            if let text = next.post.text { lines.append(L("Tibo 预告原话：\(text)")) }
         }
         if signal.next == nil, let gap = signal.typicalGap {
             let days = String(format: "%.1f", gap / 86_400)
-            lines.append("没有预告时，按最近 10 次全员重置的间隔中位数（约 \(days) 天）估算，仅供参考")
+            lines.append(L("没有预告时，按最近 10 次全员重置的间隔中位数（约 \(days) 天）估算，仅供参考"))
         }
-        lines.append("时间按本机时区（\(TimeZone.current.identifier)）显示")
-        lines.append("数据来自 didcodexreset.com（非官方，根据 Codex 负责人 Tibo 的推文判断），点击打开")
+        lines.append(L("时间按本机时区（\(TimeZone.current.identifier)）显示"))
+        lines.append(L("数据来自 didcodexreset.com（非官方，根据 Codex 负责人 Tibo 的推文判断），点击打开"))
         return lines.joined(separator: "\n")
     }
 }

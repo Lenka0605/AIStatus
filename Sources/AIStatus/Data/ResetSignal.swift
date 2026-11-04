@@ -49,10 +49,10 @@ struct ResetSignal: Equatable {
     /// 「下次」，同样从详细到简略：有预告用预告时间，否则按近期间隔估算（「约明天」「约 10/30 周五」）
     func nextTexts(now: Date = Date()) -> (texts: [String], kind: NextKind) {
         if let next { return (next.whenTexts(now: now), .scheduled) }
-        guard let estimate else { return (["暂无预告"], .unknown) }
-        if estimate < now { return (["随时可能"], .estimated) }
+        guard let estimate else { return ([L("暂无预告")], .unknown) }
+        if estimate < now { return ([L("随时可能")], .estimated) }
         let day = Fmt.day(estimate, now: now)
-        return (["约" + (day.first?.isASCII == true ? " " : "") + day], .estimated)
+        return ([AppLanguage.isChinese ? "约" + (day.first?.isASCII == true ? " " : "") + day : L("约 \(day)")], .estimated)
     }
 }
 
@@ -60,13 +60,13 @@ extension ResetSignal.Schedule {
     /// 从详细到简略：「今天 15:00 – 明天 15:00」→「今天 15:00 起」；「进行中，明天 15:00 前」→「明天 15:00 前」。
     /// 第一个是完整说法，通知里用它
     func whenTexts(now: Date = Date()) -> [String] {
-        if end < now { return ["预告时间已过，等待确认", "等待确认"] }
+        if end < now { return [L("预告时间已过，等待确认"), L("等待确认")] }
         let endAt = [Fmt.dayTime(end, now: now), Fmt.dayTime(end, now: now, weekday: false)].uniqued()
-        if deadline || start == end { return endAt.map { $0 + (deadline ? " 前" : "") } }
-        if start <= now { return ["进行中，\(endAt[0]) 前"] + endAt.map { $0 + " 前" } }
+        if deadline || start == end { return endAt.map { deadline ? L("\($0) 前") : $0 } }
+        if start <= now { return [L("进行中，\(endAt[0]) 前")] + endAt.map { L("\($0) 前") } }
         let from = Fmt.dayTime(start, now: now)
         let to = Calendar.current.isDate(start, inSameDayAs: end) ? Fmt.time(end) : endAt[0]
-        return [from + " – " + to, from + " 起", Fmt.dayTime(start, now: now, weekday: false) + " 起"].uniqued()
+        return [from + " – " + to, L("\(from) 起"), L("\(Fmt.dayTime(start, now: now, weekday: false)) 起")].uniqued()
     }
 }
 

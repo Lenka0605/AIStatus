@@ -6,7 +6,7 @@ import SwiftUI
 enum Main {
     static func main() {
         let args = CommandLine.arguments
-        if args.contains("--dump") || args.contains("--snapshot") || args.contains("--make-icon") {
+        if ["--dump", "--snapshot", "--make-icon", "--check-update", "--install-update"].contains(where: args.contains) {
             DebugTools.run(args)
             return
         }
@@ -51,6 +51,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             NSLog("AIStatus: 快捷键 \(Preferences.hotKey.title) 注册失败")
         }
         store.startBackgroundWork()
+        Updater.shared.startAutomaticChecks()
 
         installEditMenu()
         updateIcon()
@@ -59,14 +60,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// 状态栏应用不显示菜单栏，但 ⌘C / ⌘V 等快捷键要靠主菜单里的「编辑」菜单才能送到输入框
     private func installEditMenu() {
-        let edit = NSMenu(title: "编辑")
-        edit.addItem(withTitle: "撤销", action: Selector(("undo:")), keyEquivalent: "z")
-        edit.addItem(withTitle: "重做", action: Selector(("redo:")), keyEquivalent: "Z")
+        let edit = NSMenu(title: L("编辑"))
+        edit.addItem(withTitle: L("撤销"), action: Selector(("undo:")), keyEquivalent: "z")
+        edit.addItem(withTitle: L("重做"), action: Selector(("redo:")), keyEquivalent: "Z")
         edit.addItem(.separator())
-        edit.addItem(withTitle: "剪切", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
-        edit.addItem(withTitle: "拷贝", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
-        edit.addItem(withTitle: "粘贴", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
-        edit.addItem(withTitle: "全选", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        edit.addItem(withTitle: L("剪切"), action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        edit.addItem(withTitle: L("拷贝"), action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        edit.addItem(withTitle: L("粘贴"), action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        edit.addItem(withTitle: L("全选"), action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
         let editItem = NSMenuItem()
         editItem.submenu = edit
         let main = NSMenu()
@@ -99,7 +100,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 button.imagePosition = .imageOnly
                 button.title = ""
             }
-            button.toolTip = settings.hotKey == .off ? "AI 余量" : "AI 余量（\(settings.hotKey.title)）"
+            button.toolTip = settings.hotKey == .off ? L("AI 余量") : L("AI 余量（\(settings.hotKey.title)）")
             alertDot.show(level: store.serviceLevel, on: button)
         } onChange: { [weak self] in
             Task { @MainActor in self?.updateIcon() }
@@ -123,7 +124,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let host = NSHostingController(rootView: SettingsView().environment(store).environment(settings))
             host.sizingOptions = [.preferredContentSize]   // 窗口大小跟随内容
             let window = NSWindow(contentViewController: host)
-            window.title = "AI 余量设置"
+            window.title = L("AI 余量设置")
             window.styleMask = [.titled, .closable]
             window.isReleasedWhenClosed = false
             window.appearance = settings.appearance.nsAppearance

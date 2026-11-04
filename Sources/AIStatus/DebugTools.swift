@@ -7,7 +7,10 @@ import SwiftUI
 ///   --sample-estimate    配合 --sample：重置信号显示「按间隔估算」而不是「Tibo 预告」
 ///   --sample-range       配合 --sample：预告是一个时间段（「明天重置」这类只到日期的预告）
 ///   --sample-signed-out  配合 --sample：Codex 显示为本机没登录
+///   --sample-update      配合 --sample：显示「有新版本」
 ///   --make-icon <目录>    生成 AppIcon.iconset
+///   --check-update       查一次 GitHub 上的最新版本并打印
+///   --install-update     有新版本就下载、替换当前 .app 并重新打开（测试自动更新用）
 @MainActor
 enum DebugTools {
     static func run(_ args: [String]) {
@@ -21,6 +24,21 @@ enum DebugTools {
             exit(0)
         }
 
+        if args.contains("--check-update") || args.contains("--install-update") {
+            _ = NSApplication.shared   // 安装完要调用 NSApp.terminate
+            Task { @MainActor in
+                let updater = Updater.shared
+                await updater.check(manual: true)
+                print("当前 \(Updater.currentVersion)，最新 \(updater.latest.map { "\($0.version) \($0.dmg?.absoluteString ?? "没有 dmg")" } ?? "无")，状态 \(updater.phase)")
+                if args.contains("--install-update"), updater.available != nil {
+                    await updater.install()
+                    print("安装失败：\(updater.phase)")
+                }
+                exit(0)
+            }
+            RunLoop.main.run()
+        }
+
         // ImageRenderer 需要主 RunLoop 在跑，所以这里手动驱动 RunLoop 等待数据，而不是 dispatchMain()
         final class Flag { var done = false }
         let store = Store()
@@ -29,6 +47,9 @@ enum DebugTools {
             // --offline：不联网，只统计本机 token（避免调试时触发限流）
             if args.contains("--offline") || args.contains("--sample") { await store.refreshLocal() } else { await store.refresh(force: true) }
             if args.contains("--sample") { fillSample(store, args: args) }
+            if args.contains("--sample-update") {
+                Updater.shared.latest = Updater.Release(version: "9.9.0", page: Updater.releasesPage, dmg: nil)
+            }
             flag.done = true
         }
         while !flag.done {
@@ -42,18 +63,18 @@ enum DebugTools {
     private static func fillSample(_ store: Store, args: [String]) {
         let now = Date()
         store.claude.quota = ProviderQuota(plan: "Ultra", windows: [
-            QuotaWindow(id: "seven_day", label: "本周", usedPercent: 14, resetsAt: now.addingTimeInterval(2 * 86_400), weekly: true),
-            QuotaWindow(id: "seven_day_fable", label: "本周 Fable", usedPercent: 0, resetsAt: now.addingTimeInterval(2 * 86_400),
-                        note: "最多用周额度的 50%"),
+            QuotaWindow(id: "seven_day", label: L("本周"), usedPercent: 14, resetsAt: now.addingTimeInterval(2 * 86_400), weekly: true),
+            QuotaWindow(id: "seven_day_fable", label: L("本周 \("Fable")"), usedPercent: 0, resetsAt: now.addingTimeInterval(2 * 86_400),
+                        note: L("最多用周额度的 \(50)%")),
         ], credits: nil, source: .live, asOf: now)
         store.claude.setTodayUsed(2)
         store.codex.quota = ProviderQuota(plan: "Pro", windows: [
-            QuotaWindow(id: "secondary_window", label: "本周", usedPercent: 81, resetsAt: now.addingTimeInterval(6 * 86_400), weekly: true),
+            QuotaWindow(id: "secondary_window", label: L("本周"), usedPercent: 81, resetsAt: now.addingTimeInterval(6 * 86_400), weekly: true),
         ], credits: 37_463, source: .live, asOf: now)
         store.codex.setTodayUsed(50)
-        store.claude.health = ServiceHealth(level: .degraded, summary: "Claude Code 性能下降", checkedAt: now)
+        store.claude.health = ServiceHealth(level: .degraded, summary: L("\("Claude Code")\(ServiceLevel.degraded.title)"), checkedAt: now)
         store.codex.health = ServiceHealth(
-            level: .notice, summary: "代码审查、安全审查出错增多", stage: "已修复，观察中",
+            level: .notice, summary: IncidentSummary.chinese("Elevated errors on code review and security review", fallbackSubject: ""), stage: IncidentSummary.stage("monitoring"),
             original: "Elevated error rates for most hosted Code Reviews and Security Reviews on private GitHub repositories",
             checkedAt: now)
         let post = ResetSignal.Post(id: "sample", at: now.addingTimeInterval(-6 * 60), text: "已经全部同步完成。明天尽情疯狂 Codex 吧。", url: nil)
@@ -147,6 +168,8 @@ enum DebugTools {
             }
             snapshotSettingsWindow(store, appearance: appearance, to: dir.appendingPathComponent("settings-\(name).png"))
         }
+        // 不限高度的完整版本（看最下面的分区用）
+        snapshotSettingsWindow(store, appearance: .aqua, maxHeight: 3000, to: dir.appendingPathComponent("settings-full.png"))
         // 屏幕不够高时的滚动版本
         snapshotSettingsWindow(store, appearance: .aqua, maxHeight: 600, to: dir.appendingPathComponent("settings-short.png"))
         let menu = Image(nsImage: MenuBarIcon.image(levels: store.iconLevels))

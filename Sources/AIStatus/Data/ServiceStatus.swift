@@ -11,12 +11,12 @@ enum ServiceLevel: Int, Comparable {
 
     var title: String {
         switch self {
-        case .ok: return "正常"
-        case .notice: return "有进行中的事件"
-        case .maintenance: return "维护中"
-        case .degraded: return "性能下降"
-        case .partial: return "部分中断"
-        case .major: return "严重中断"
+        case .ok: return L("正常")
+        case .notice: return L("有进行中的事件")
+        case .maintenance: return L("维护中")
+        case .degraded: return L("性能下降")
+        case .partial: return L("部分中断")
+        case .major: return L("严重中断")
         }
     }
 }
@@ -51,7 +51,7 @@ enum ServiceStatusClient {
     static let claude = Source(
         summaryURL: URL(string: "https://status.claude.com/api/v2/summary.json")!,
         pageURL: URL(string: "https://status.claude.com")!,
-        fallbackSubject: "Claude 服务",
+        fallbackSubject: L("Claude 服务"),
         isRelevantComponent: { name in ["claude.ai", "Claude API", "Claude Code"].contains { name.hasPrefix($0) } },
         incidentKeywords: []
     )
@@ -59,7 +59,7 @@ enum ServiceStatusClient {
     static let openai = Source(
         summaryURL: URL(string: "https://status.openai.com/api/v2/summary.json")!,
         pageURL: URL(string: "https://status.openai.com")!,
-        fallbackSubject: "OpenAI 服务",
+        fallbackSubject: L("OpenAI 服务"),
         isRelevantComponent: { name in
             name.localizedCaseInsensitiveContains("codex") || ["CLI", "VS Code extension", "Login", "Conversations"].contains(name)
         },
@@ -92,9 +92,11 @@ enum ServiceStatusClient {
             affected.append((name, l))
         }
         if let top = affected.max(by: { $0.level < $1.level }) {
-            let more = affected.count > 1 ? " 等 \(affected.count) 项" : ""
+            let name = shortName(top.name)
             level = top.level
-            summary = shortName(top.name) + more + top.level.title
+            summary = affected.count > 1
+                ? L("\(name) 等 \(affected.count) 项\(top.level.title)")
+                : L("\(name)\(top.level.title)")
         }
 
         // 进行中的事件：比组件状态更严重时才用它的标题
@@ -227,13 +229,13 @@ enum DeepSeekStatusClient {
 enum IncidentSummary {
     /// 按顺序匹配，先出现的优先
     private static let problems: [(keys: [String], text: String)] = [
-        (["maintenance"], "维护中"),
-        (["limited availability", "partially unavailable"], "部分不可用"),
-        (["outage", "unavailable", "not loading", "unable to", "cannot", "can't", "inaccessible", "not working", "down for"], "无法使用"),
-        (["error", "failing", "failure", "failed", "fail to"], "出错增多"),
-        (["degraded performance", "latency", "slow", "timeout", "timing out"], "变慢"),
-        (["delay"], "延迟"),
-        (["degraded", "degradation"], "功能异常"),
+        (["maintenance"], L("维护中")),
+        (["limited availability", "partially unavailable"], L("部分不可用")),
+        (["outage", "unavailable", "not loading", "unable to", "cannot", "can't", "inaccessible", "not working", "down for"], L("无法使用")),
+        (["error", "failing", "failure", "failed", "fail to"], L("出错增多")),
+        (["degraded performance", "latency", "slow", "timeout", "timing out"], L("变慢")),
+        (["delay"], L("延迟")),
+        (["degraded", "degradation"], L("功能异常")),
     ]
 
     /// 受影响的功能；用正则词边界，避免 api 匹配到 rapid 这类单词
@@ -241,29 +243,29 @@ enum IncidentSummary {
         (#"claude code"#, "Claude Code"),
         (#"claude\.ai"#, "claude.ai"),
         (#"\bcowork\b"#, "Cowork"),
-        (#"\bconsole\b|platform\.claude\.com|claude platform"#, "控制台"),
-        (#"(multiple|other) models"#, "多个模型"),
-        (#"code reviews?"#, "代码审查"),
-        (#"security reviews?"#, "安全审查"),
-        (#"cloud tasks?|codex web"#, "云端任务"),
+        (#"\bconsole\b|platform\.claude\.com|claude platform"#, L("控制台")),
+        (#"(multiple|other) models"#, L("多个模型")),
+        (#"code reviews?"#, L("代码审查")),
+        (#"security reviews?"#, L("安全审查")),
+        (#"cloud tasks?|codex web"#, L("云端任务")),
         (#"\bcodex\b(?! web)"#, "Codex"),
         (#"\bcli\b"#, "CLI"),
-        (#"vs ?code|ide extension"#, "编辑器插件"),
+        (#"vs ?code|ide extension"#, L("编辑器插件")),
         (#"chatgpt"#, "ChatGPT"),
-        (#"\bconversations?\b"#, "对话"),
-        (#"\blog ?in\b|sign[ -]?in|authentication"#, "登录"),
-        (#"file uploads?"#, "文件上传"),
-        (#"file downloads?"#, "文件下载"),
-        (#"\bvoice\b"#, "语音"),
-        (#"gpt-image|image generation|\bimages?\b"#, "图片生成"),
-        (#"deep research"#, "深度研究"),
-        (#"connectors?|connections"#, "连接器"),
-        (#"plugins?"#, "插件"),
+        (#"\bconversations?\b"#, L("对话")),
+        (#"\blog ?in\b|sign[ -]?in|authentication"#, L("登录")),
+        (#"file uploads?"#, L("文件上传")),
+        (#"file downloads?"#, L("文件下载")),
+        (#"\bvoice\b"#, L("语音")),
+        (#"gpt-image|image generation|\bimages?\b"#, L("图片生成")),
+        (#"deep research"#, L("深度研究")),
+        (#"connectors?|connections"#, L("连接器")),
+        (#"plugins?"#, L("插件")),
         (#"\bmcp\b"#, "MCP"),
-        (#"usage data"#, "用量数据"),
-        (#"spend limits?"#, "消费限额"),
+        (#"usage data"#, L("用量数据")),
+        (#"spend limits?"#, L("消费限额")),
         (#"credits?"#, "Credits"),
-        (#"subscriptions?|billing|payments?|purchases?"#, "订阅付费"),
+        (#"subscriptions?|billing|payments?|purchases?"#, L("订阅付费")),
         (#"\bapis?\b"#, "API"),
     ]
 
@@ -274,14 +276,17 @@ enum IncidentSummary {
         #"(?i)\b(gpt-\d[\w.]*)"#,
     ]
 
+    /// 英文界面直接用原标题；中文、越南语界面按关键词提炼
     static func chinese(_ title: String, fallbackSubject: String) -> String {
+        if AppLanguage.isEnglish { return title }
         let lower = title.lowercased()
-        let problem = problems.first { $0.keys.contains(where: lower.contains) }?.text ?? "出现问题"
+        let problem = problems.first { $0.keys.contains(where: lower.contains) }?.text ?? L("出现问题")
         var found = models(in: title)
         for s in subjects where !found.contains(s.text) && lower.range(of: s.pattern, options: .regularExpression) != nil {
             found.append(s.text)
         }
-        let subject = found.isEmpty ? fallbackSubject : found.prefix(3).joined(separator: "、")
+        let subject = found.isEmpty ? fallbackSubject : found.prefix(3).joined(separator: L("、"))
+        guard AppLanguage.isChinese else { return L("\(subject)：\(problem)") }
         // 英文结尾和中文之间留一个空格，和面板其他地方的排版一致
         let gap = subject.last.map { $0.isASCII } == true ? " " : ""
         return subject + gap + problem
@@ -303,11 +308,11 @@ enum IncidentSummary {
 
     static func stage(_ status: String?) -> String? {
         switch status {
-        case "investigating": return "排查中"
-        case "identified": return "已找到原因"
-        case "monitoring": return "已修复，观察中"
-        case "scheduled": return "计划中"
-        case "in_progress": return "进行中"
+        case "investigating": return L("排查中")
+        case "identified": return L("已找到原因")
+        case "monitoring": return L("已修复，观察中")
+        case "scheduled": return L("计划中")
+        case "in_progress": return L("进行中")
         default: return nil
         }
     }

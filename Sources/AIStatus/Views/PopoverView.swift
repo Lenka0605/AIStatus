@@ -41,11 +41,14 @@ struct PopoverView: View {
             AppGlyph(size: 40)
             VStack(alignment: .leading, spacing: 2) {
                 Text("AI 余量").font(.system(size: 16, weight: .semibold)).foregroundStyle(Theme.text)
-                Text(store.lastUpdated.map { "更新于 " + Fmt.clock($0) } ?? "正在获取…")
+                Text(store.lastUpdated.map { L("更新于 \(Fmt.clock($0))") } ?? L("正在获取…"))
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.secondaryText)
             }
             Spacer(minLength: 8)
+            if let release = Updater.shared.available {
+                UpdatePill(updater: Updater.shared, release: release)
+            }
             StatusPill(kind: store.isFetching ? .busy : (store.hasError ? .warn : .ok))
         }
     }
@@ -58,7 +61,7 @@ struct PopoverView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.clockwise")
                         .modifier(Spinning(active: store.isFetching))
-                    Text(store.isFetching ? "刷新中…" : "立即刷新")
+                    Text(store.isFetching ? L("刷新中…") : L("立即刷新"))
                 }
             }
             .buttonStyle(SoftButtonStyle())
@@ -71,6 +74,50 @@ struct PopoverView: View {
             Button(action: actions.quit) { Image(systemName: "power") }
                 .buttonStyle(SoftButtonStyle(square: true))
                 .help("退出")
+        }
+    }
+}
+
+/// 面板顶部的「更新到 x.y」：点一下下载新版本，替换后自动重新打开
+struct UpdatePill: View {
+    let updater: Updater
+    let release: Updater.Release
+
+    var body: some View {
+        Button { Task { await updater.install() } } label: {
+            HStack(spacing: 5) {
+                if updater.phase == .downloading || updater.phase == .installing {
+                    ProgressView().controlSize(.mini).tint(.white)
+                } else {
+                    Image(systemName: failed ? "exclamationmark.arrow.circlepath" : "arrow.down.circle.fill")
+                }
+                Text(label)
+            }
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(Capsule().fill(failed ? Palette.warn : Palette.ok))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .disabled(updater.isBusy)
+        .help(failedMessage ?? L("下载新版本 \(release.version)，替换后自动重新打开"))
+    }
+
+    private var failed: Bool { failedMessage != nil }
+
+    private var failedMessage: String? {
+        if case .failed(let message) = updater.phase { return message }
+        return nil
+    }
+
+    private var label: String {
+        switch updater.phase {
+        case .downloading: return L("下载中…")
+        case .installing: return L("正在安装…")
+        case .failed: return L("更新失败，重试")
+        default: return L("更新到 \(release.version)")
         }
     }
 }
@@ -107,7 +154,7 @@ struct ProviderInfo {
 
     /// 没装 DeepSeek Harness 时打开开放平台
     static let deepseek = ProviderInfo(
-        name: "DeepSeek", product: "开放平台", kind: .deepseek, tint: Palette.deepseek,
+        name: "DeepSeek", product: L("开放平台"), kind: .deepseek, tint: Palette.deepseek,
         price: { _ in nil }, app: AppIcons.deepseekApp,
         web: URL(string: "https://platform.deepseek.com")!,
         usage: URL(string: "https://platform.deepseek.com/usage")!,
@@ -140,9 +187,9 @@ struct ProviderCard: View {
             }
 
             if let quota = state.quota, quota.source == .log {
-                staleNote("离线数据 · 截至 " + Fmt.clock(quota.asOf), help: "联网获取失败，显示本地日志里最近一次记录")
+                staleNote(L("离线数据 · 截至 \(Fmt.clock(quota.asOf))"), help: L("联网获取失败，显示本地日志里最近一次记录"))
             } else if let quota = state.quota, Date().timeIntervalSince(quota.asOf) > 120 {
-                staleNote("截至 " + Fmt.clock(quota.asOf), help: "显示的是上一次查询的结果")
+                staleNote(L("截至 \(Fmt.clock(quota.asOf))"), help: L("显示的是上一次查询的结果"))
             }
 
             if let quota = state.quota {
@@ -190,7 +237,7 @@ struct ProviderCard: View {
 
     /// 名称下方的一行：「Claude Code · $200/月」
     private var detail: String {
-        let monthly = state.quota?.plan.flatMap(info.price).map { "$\($0)/月" }
+        let monthly = state.quota?.plan.flatMap(info.price).map { L("$\($0)/月") }
         return ([info.product] + [monthly].compactMap { $0 }).joined(separator: " · ")
     }
 
@@ -220,16 +267,17 @@ struct ProviderHeader: View {
                     }
                 }
                 Text(detail).font(.system(size: 11)).foregroundStyle(Theme.secondaryText)
+                    .lineLimit(1).minimumScaleFactor(0.8)   // 英文、越南语比中文长，宁可缩小一点也不折行
             }
             Spacer(minLength: 4)
             HStack(spacing: 4) {
                 IconButton(help: statusHelp, action: { NSWorkspace.shared.open(info.status) }) {
                     StatusLight(level: health?.level)
                 }
-                IconButton(help: "打开 \(info.app?.deletingPathExtension().lastPathComponent ?? info.name)", action: info.openApp) {
+                IconButton(help: L("打开 \(info.app?.deletingPathExtension().lastPathComponent ?? info.name)"), action: info.openApp) {
                     Image(systemName: "arrow.up.forward.app")
                 }
-                IconButton(help: "在网页上查看用量", action: { NSWorkspace.shared.open(info.usage) }) {
+                IconButton(help: L("在网页上查看用量"), action: { NSWorkspace.shared.open(info.usage) }) {
                     Image(systemName: "chart.bar.xaxis")
                 }
             }
@@ -237,8 +285,9 @@ struct ProviderHeader: View {
     }
 
     private var statusHelp: String {
-        guard let health else { return "服务状态：还没查到，点击打开官方状态页" }
-        return "服务状态：\(health.level == .ok ? "正常" : health.summary ?? health.level.title)，点击打开官方状态页"
+        guard let health else { return L("服务状态：还没查到，点击打开官方状态页") }
+        let text = health.level == .ok ? ServiceLevel.ok.title : health.summary ?? health.level.title
+        return L("服务状态：\(text)，点击打开官方状态页")
     }
 }
 
@@ -251,7 +300,7 @@ struct DeepSeekCard: View {
         let info = ProviderInfo.deepseek
         let health = store.deepseekHealth?.ifCurrent
         VStack(alignment: .leading, spacing: 13) {
-            ProviderHeader(info: info, badge: "API", detail: "开放平台 · 按量付费", health: health)
+            ProviderHeader(info: info, badge: "API", detail: L("开放平台 · 按量付费"), health: health)
             if let health, health.level > .ok {
                 ServiceNotice(health: health) { NSWorkspace.shared.open(info.status) }
             }
@@ -278,7 +327,7 @@ struct DeepSeekCard: View {
                     }
                 }
             } else {
-                SetupPrompt(text: "填写 API Key 后显示余额和用量", action: openSettings)
+                SetupPrompt(text: L("填写 API Key 后显示余额和用量"), action: openSettings)
             }
         }
         .frame(maxHeight: .infinity, alignment: .top)
@@ -305,20 +354,21 @@ struct DeepSeekCard: View {
 
     /// 「充值 $20.00 · 赠金 ¥4.32，先扣赠金」
     private func balanceCaption(_ spend: ApiSpend) -> String {
-        if !spend.available { return "余额不足，API 已无法调用" }
-        let parts = "充值 \(amounts(spend.balances.map { ($0.currency, $0.toppedUp) }, spend))"
-            + " · 赠金 \(amounts(spend.balances.map { ($0.currency, $0.granted) }, spend))"
-        return spend.balances.contains { $0.granted > 0 } ? parts + "，先扣赠金" : parts
+        if !spend.available { return L("余额不足，API 已无法调用") }
+        let toppedUp = amounts(spend.balances.map { ($0.currency, $0.toppedUp) }, spend)
+        let granted = amounts(spend.balances.map { ($0.currency, $0.granted) }, spend)
+        return spend.balances.contains { $0.granted > 0 }
+            ? L("充值 \(toppedUp) · 赠金 \(granted)，先扣赠金")
+            : L("充值 \(toppedUp) · 赠金 \(granted)")
     }
 
     private func usageTiles(_ usage: BalanceUsage, spend: ApiSpend) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 8) {
-                StatTile(icon: "calendar", title: "今日花费", value: amounts(usage.today.map { ($0, $1) }, spend))
-                StatTile(icon: "chart.bar.fill", title: "本月花费", value: amounts(usage.month.map { ($0, $1) }, spend))
+                StatTile(icon: "calendar", title: L("今日花费"), value: amounts(usage.today.map { ($0, $1) }, spend))
+                StatTile(icon: "chart.bar.fill", title: L("本月花费"), value: amounts(usage.month.map { ($0, $1) }, spend))
             }
-            .help("DeepSeek 的 API Key 查不到用量明细，这里每次查余额都和上一次比，减少的部分记为花费；"
-                  + "充值和新到的赠金不算。应用没运行期间的花费，会在下次查到余额时算到那一天")
+            .help(L("DeepSeek 的 API Key 查不到用量明细，这里每次查余额都和上一次比，减少的部分记为花费；充值和新到的赠金不算。应用没运行期间的花费，会在下次查到余额时算到那一天"))
             DailySpendChart(days: usage.recent) { amounts($0.map { ($0, $1) }, spend) }
                 .padding(.top, 6)
             Text(usageCaption(usage))
@@ -332,9 +382,9 @@ struct DeepSeekCard: View {
         let now = Date()
         // 记录还没覆盖整个月时，说明本月花费从哪天开始算
         guard usage.since > Calendar.current.dateInterval(of: .month, for: now)?.start ?? now else {
-            return "根据余额变化推算，充值和新到的赠金不算"
+            return L("根据余额变化推算，充值和新到的赠金不算")
         }
-        return "根据余额变化推算 · \(Fmt.dayTime(usage.since, now: now, weekday: false)) 开始记录"
+        return L("根据余额变化推算 · \(Fmt.dayTime(usage.since, now: now, weekday: false)) 开始记录")
     }
 
     /// 各币种的金额，按余额列表的币种顺序，为 0 的不写；全是 0 时写一个 0，币种取正在扣的那个（有赠金先扣赠金）
@@ -387,8 +437,10 @@ struct DailySpendChart: View {
             }
             .frame(maxWidth: .infinity, minHeight: Self.plotHeight, maxHeight: Self.plotHeight, alignment: .bottom)
             Rectangle().fill(Theme.cardBorder).frame(height: 1)
-            Text(today ? "今天" : Fmt.weekday(day.day))
+            Text(today ? L("今天") : Fmt.weekday(day.day))
                 .font(.system(size: 10, weight: today ? .semibold : .regular))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
                 .foregroundStyle(today ? Theme.secondaryText : Theme.tertiaryText)
                 .opacity(day.recorded ? 1 : 0.5)
                 .padding(.top, 4)
@@ -398,15 +450,15 @@ struct DailySpendChart: View {
             if inside { hover.day = day.day } else if hover.day == day.day { hover.day = nil }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(Fmt.day(day.day)) \(day.recorded ? format(day.amounts) : "未记录")")
+        .accessibilityLabel("\(Fmt.day(day.day)) \(day.recorded ? format(day.amounts) : L("未记录"))")
     }
 
     private var headline: String {
         if let hovered = hover.day, let day = days.first(where: { $0.day == hovered }) {
-            return "\(Fmt.day(day.day))  \(day.recorded ? format(day.amounts) : "未记录")"
+            return "\(Fmt.day(day.day))  \(day.recorded ? format(day.amounts) : L("未记录"))"
         }
         let total = days.reduce(into: [String: Double]()) { $0.merge($1.amounts, uniquingKeysWith: +) }
-        return "合计 \(format(total))"
+        return L("合计 \(format(total))")
     }
 
     /// 柱子高度要用同一把尺子：人民币按约 7:1 折成美元。只影响高度，金额文字照实写
@@ -505,8 +557,8 @@ struct SpendRow: View {
             } else if let spend = state.spend {
                 let today = Fmt.usd(spend.today ?? 0)
                 Text(spend.remaining == nil
-                     ? "本月花费 · UTC 今日 \(today) · 未填写余额"
-                     : "UTC 今日 \(today) · 本月 \(Fmt.usd(spend.month ?? 0))")
+                     ? L("本月花费 · UTC 今日 \(today) · 未填写余额")
+                     : L("UTC 今日 \(today) · 本月 \(Fmt.usd(spend.month ?? 0))"))
                     .font(.system(size: 11))
                     .foregroundStyle(Theme.tertiaryText)
             }
