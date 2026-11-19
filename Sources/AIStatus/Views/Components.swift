@@ -35,6 +35,7 @@ enum Palette {
     static let claude = Color(red: 0.851, green: 0.467, blue: 0.341)   // #D97757
     static let codex = Color(red: 0.063, green: 0.639, blue: 0.498)    // #10A37F
     static let deepseek = Color(red: 0.302, green: 0.420, blue: 0.996) // #4D6BFE
+    static let grok = Color(red: 0.420, green: 0.447, blue: 0.502)     // #6B7280，Grok 的品牌色是黑白，用石墨灰
     static let danger = Color(red: 0.92, green: 0.30, blue: 0.27)
     static let warn = Color(red: 0.96, green: 0.62, blue: 0.20)
     static let ok = Color(red: 0.20, green: 0.78, blue: 0.35)
@@ -105,7 +106,7 @@ struct AppGlyph: View {
 
 /// 卡片左上角的品牌图标：优先用本机安装的 Claude / ChatGPT / DeepSeek Harness 应用图标
 struct BrandIcon: View {
-    enum Kind { case claude, chatgpt, deepseek }
+    enum Kind { case claude, chatgpt, deepseek, grok }
     let kind: Kind
     let tint: Color
 
@@ -128,6 +129,7 @@ struct BrandIcon: View {
         case .claude: return AppIcons.claude
         case .chatgpt: return AppIcons.chatgpt
         case .deepseek: return AppIcons.deepseek
+        case .grok: return AppIcons.grok
         }
     }
 
@@ -136,6 +138,7 @@ struct BrandIcon: View {
         case .claude: Text("C")
         case .chatgpt: Text("G")
         case .deepseek: Image(systemName: "fish.fill")   // 没有鲸鱼，用鱼代替
+        case .grok: Text("X")
         }
     }
 }
@@ -147,6 +150,8 @@ enum AppIcons {
     static let claude = claudeApp.flatMap { rasterized(NSWorkspace.shared.icon(forFile: $0.path)) }
     static let chatgpt = chatgptApp.flatMap { rasterized(NSWorkspace.shared.icon(forFile: $0.path)) }
     static let deepseek = deepseekApp.flatMap { rasterized(NSWorkspace.shared.icon(forFile: $0.path)) }
+    static let grokApp = locate(paths: ["/Applications/Grok.app"], bundleIDs: ["ai.x.grok", "ai.x.GrokApp"])
+    static let grok = grokApp.flatMap { rasterized(NSWorkspace.shared.icon(forFile: $0.path)) }
 
     private static func locate(paths: [String], bundleIDs: [String]) -> URL? {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
@@ -287,10 +292,12 @@ struct QuotaRow: View {
     }
 }
 
-/// 卡片底部的「今日」区域：今日已用周额度（含所有设备）+ 本机今日 Token
+/// 卡片底部的「今日」区域：今日已用周额度（含所有设备）+ 本机今日 Token。
+/// Grok 没有本机 Token 统计，换成用得最多的产品，下面一行列出各产品分别用了多少
 struct TodaySummary: View {
     let todayUsed: Double?
-    let tokens: TokenTotals
+    let tokens: TokenTotals?
+    var products: [ProductUsage]? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
@@ -299,7 +306,12 @@ struct TodaySummary: View {
                     StatTile(icon: "calendar", title: L("今日已用周额度"), value: Fmt.percent(todayUsed))
                         .help(L("根据服务器额度计算，包含网页、云端任务、手机和其他电脑上的使用"))
                 }
-                StatTile(icon: "cpu", title: L("本机今日 Token"), value: Fmt.tokens(tokens.total))
+                if let tokens {
+                    StatTile(icon: "cpu", title: L("本机今日 Token"), value: Fmt.tokens(tokens.total))
+                } else if let top = products?.first {
+                    StatTile(icon: "hammer", title: top.title, value: Fmt.percent(top.usedPercent))
+                        .help(L("本周期内这个产品用掉的额度，占总额度的百分比"))
+                }
             }
             Text(caption)
                 .font(.system(size: 11))
@@ -310,6 +322,11 @@ struct TodaySummary: View {
     }
 
     private var caption: String {
+        guard let tokens else {
+            guard let products, !products.isEmpty else { return "" }
+            let parts = products.map { "\($0.title) \(Fmt.percent($0.usedPercent))" }.joined(separator: " · ")
+            return L("本周期 \(parts)")
+        }
         if tokens.total == 0 { return L("这台电脑今天还没有使用") }
         let known = tokens.total - tokens.other
         if known == 0 { return L("来自运行日志，只有总数，可能少算") }

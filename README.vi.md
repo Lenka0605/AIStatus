@@ -4,7 +4,7 @@
 
 [简体中文](README.md) | [English](README.en.md) | **Tiếng Việt**
 
-Xem nhanh hạn mức còn lại của Claude Code, Codex và số dư API của DeepSeek, Anthropic, OpenAI ngay trên thanh menu của Mac.
+Xem nhanh hạn mức còn lại của Claude Code, Codex, Grok và số dư API của DeepSeek, Anthropic, OpenAI ngay trên thanh menu của Mac.
 
 [**⬇️ Tải AIStatus.dmg mới nhất**](https://github.com/Lenka0605/AIStatus/releases/latest/download/AIStatus.dmg)
 
@@ -18,6 +18,7 @@ macOS 14 trở lên · Hỗ trợ cả chip Apple và Intel
 
 - **Xem hạn mức trong nháy mắt**: vòng tròn và con số trên biểu tượng thanh menu cho biết hạn mức tuần của Claude Code, Codex còn bao nhiêu
 - **Hạn mức gói đăng ký**: hạn mức tuần, hạn mức tuần riêng của từng mô hình (ví dụ Fable), thời gian đặt lại, phần hạn mức tuần đã dùng hôm nay và số token đã dùng trên máy này hôm nay
+- **Grok**: sau khi đăng nhập Grok CLI, hiện hạn mức tuần, thời gian đặt lại và phần đã dùng của Grok Build (viết code) và chat
 - **Codex**: số Credits, thời điểm "đặt lại cho mọi người" lần trước và lần tới
 - **DeepSeek**: số dư tài khoản (tách riêng tiền nạp và tiền tặng), chi tiêu hôm nay, tháng này được suy ra từ thay đổi số dư, kèm biểu đồ 7 ngày
 - **API Anthropic / OpenAI**: chi tiêu hôm nay, tháng này và số dư còn lại, dùng Admin Key
@@ -45,7 +46,7 @@ Bước 2 và 3 chỉ cần làm một lần. Các phiên bản sau sẽ đượ
 
 ## Yêu cầu
 
-- Đã đăng nhập **Claude Code** bằng tài khoản Claude, hoặc **Codex** bằng tài khoản ChatGPT — dùng dịch vụ nào thì hiện dịch vụ đó
+- Đã đăng nhập **Claude Code** bằng tài khoản Claude, **Codex** bằng tài khoản ChatGPT, hoặc **Grok CLI** bằng `grok login` — dùng dịch vụ nào thì hiện dịch vụ đó
 - Số dư API của DeepSeek và Anthropic / OpenAI cần nhập Key trong Cài đặt
 
 ## Quyền riêng tư

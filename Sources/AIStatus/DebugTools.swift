@@ -126,6 +126,10 @@ enum DebugTools {
         }
         describe("Claude", store.claude, store.claudeTokens)
         describe("ChatGPT / Codex", store.codex, store.codexTokens)
+        describe("Grok", store.grok, TokenTotals())
+        if let products = store.grok.quota?.products {
+            print("  各产品: " + products.map { "\($0.title) \(Fmt.percent($0.usedPercent))" }.joined(separator: "  "))
+        }
         if let s = store.resetSignal {
             let next = s.nextTexts()
             print("== Codex 全员重置（didcodexreset.com）")

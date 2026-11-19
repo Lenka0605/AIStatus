@@ -16,18 +16,42 @@ struct PopoverView: View {
     var body: some View {
         VStack(spacing: 12) {
             header
-            row {
-                ProviderCard(info: .claude, state: store.claude, tokens: store.claudeTokens)
-                ProviderCard(info: .chatgpt, state: store.codex, tokens: store.codexTokens, signal: store.resetSignal)
-            }
-            row {
-                DeepSeekCard(openSettings: actions.openSettings)
-                ApiBalanceCard(openSettings: actions.openSettings)
+            ForEach(Array(stride(from: 0, to: cards.count, by: 2)), id: \.self) { start in
+                row {
+                    ForEach(cards[start..<min(start + 2, cards.count)]) { card($0) }
+                    if start + 1 == cards.count { Color.clear.frame(maxWidth: .infinity) }   // 单数时右边留空，卡片宽度不变
+                }
             }
             footer
         }
         .padding(16)
         .frame(width: Self.width)
+    }
+
+    enum Card: Identifiable {
+        case claude, chatgpt, grok, deepseek, apiBalance
+        var id: Self { self }
+    }
+
+    /// 两列排。Grok 只在本机登录过时显示；这时如果 Anthropic / OpenAI 的 Admin Key 也没配，
+    /// 那张「API 余额」卡只是个去设置的入口，让位给 Grok，面板保持 2×2 不变高（设置里照样能配）
+    private var cards: [Card] {
+        let apiConfigured = AdminProvider.allCases.contains { !$0.reportsBalance && store.spend[$0] != nil }
+        var list: [Card] = [.claude, .chatgpt]
+        if store.grokInUse { list.append(.grok) }
+        list.append(.deepseek)
+        if apiConfigured || !store.grokInUse { list.append(.apiBalance) }
+        return list
+    }
+
+    @ViewBuilder private func card(_ card: Card) -> some View {
+        switch card {
+        case .claude: ProviderCard(info: .claude, state: store.claude, tokens: store.claudeTokens)
+        case .chatgpt: ProviderCard(info: .chatgpt, state: store.codex, tokens: store.codexTokens, signal: store.resetSignal)
+        case .grok: ProviderCard(info: .grok, state: store.grok, tokens: nil)
+        case .deepseek: DeepSeekCard(openSettings: actions.openSettings)
+        case .apiBalance: ApiBalanceCard(openSettings: actions.openSettings)
+        }
     }
 
     /// 一行两张卡片，等宽等高（卡片自己要能在高度上撑开）
@@ -152,6 +176,15 @@ struct ProviderInfo {
         status: ServiceStatusClient.openai.pageURL
     )
 
+    /// 没有桌面应用时打开网页版；用量页是 Grok CLI 里 /usage 给的链接
+    static let grok = ProviderInfo(
+        name: "Grok", product: "Grok Build", kind: .grok, tint: Palette.grok,
+        price: { _ in nil }, app: AppIcons.grokApp,
+        web: URL(string: "https://grok.com")!,
+        usage: URL(string: "https://grok.com/?_s=usage")!,
+        status: URL(string: "https://status.x.ai")!
+    )
+
     /// 没装 DeepSeek Harness 时打开开放平台
     static var deepseek: ProviderInfo { ProviderInfo(
         name: "DeepSeek", product: L("开放平台"), kind: .deepseek, tint: Palette.deepseek,
@@ -173,7 +206,8 @@ struct ProviderInfo {
 struct ProviderCard: View {
     let info: ProviderInfo
     let state: ProviderState
-    let tokens: TokenTotals
+    /// 本机今日 Token；Grok 没有本机统计，传 nil
+    let tokens: TokenTotals?
     /// 只有 Codex 有：全员重置信号
     var signal: ResetSignal? = nil
 
@@ -221,12 +255,12 @@ struct ProviderCard: View {
             }
 
             // 本机没用过这家（没登录、也没有用量）时只留上面一行提示，不占地方
-            if !(state.notInUse && tokens.total == 0) {
+            if !(state.notInUse && (tokens?.total ?? 0) == 0) {
                 VStack(alignment: .leading, spacing: 13) {
                     if let signal {
                         ResetSignalTile(signal: signal, tint: info.tint)
                     }
-                    TodaySummary(todayUsed: state.todayUsedIfCurrent, tokens: tokens)
+                    TodaySummary(todayUsed: state.todayUsedIfCurrent, tokens: tokens, products: state.quota?.products)
                 }
                 .frame(maxHeight: .infinity, alignment: .bottom)   // 和旁边卡片等高时，今日数据贴底对齐
             }
@@ -285,6 +319,8 @@ struct ProviderHeader: View {
     }
 
     private var statusHelp: String {
+        // xAI 的状态页有 Cloudflare 拦着，程序读不到，只能点开看
+        if info.kind == .grok { return L("打开官方状态页") }
         guard let health else { return L("服务状态：还没查到，点击打开官方状态页") }
         let text = health.level == .ok ? ServiceLevel.ok.title : health.summary ?? health.level.title
         return L("服务状态：\(text)，点击打开官方状态页")

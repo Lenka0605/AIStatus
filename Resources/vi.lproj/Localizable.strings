@@ -226,3 +226,8 @@
 "额度恢复提醒" = "Nhắc khi hạn mức được đặt lại";
 "语言" = "Ngôn ngữ";
 "跟随系统" = "Theo hệ thống";
+"Grok 登录已过期，使用一次 Grok 后自动恢复" = "Phiên đăng nhập Grok đã hết hạn. Dùng Grok một lần để khôi phục.";
+"Grok 聊天" = "Grok Chat";
+"本周期 %@" = "Kỳ này: %@";
+"本周期内这个产品用掉的额度，占总额度的百分比" = "Phần hạn mức kỳ này mà sản phẩm này đã dùng, tính theo % tổng hạn mức";
+"本机未登录 Grok，登录后自动显示" = "Chưa đăng nhập Grok trên máy này. Sẽ hiện sau khi đăng nhập.";

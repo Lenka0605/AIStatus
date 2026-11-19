@@ -18,7 +18,7 @@ for f in glob.glob(f"{out}/*.stringsdata"):
     for items in json.load(open(f))["tables"].values():
         keys.update(i["key"] for i in items)
 # 图标里的字母、数字和符号不用翻
-keys -= {"%lld", "%", "0", "+", "C", "G", "%@ %@"}
+keys -= {"%lld", "%", "0", "+", "C", "G", "X", "%@ %@"}
 if mode == "--keys":
     print(json.dumps(sorted(keys), ensure_ascii=False, indent=1))
 

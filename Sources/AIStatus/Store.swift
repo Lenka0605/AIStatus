@@ -10,6 +10,7 @@ import Observation
 final class Store {
     var claude = ProviderState()
     var codex = ProviderState()
+    var grok = ProviderState()
     var claudeTokens = TokenTotals()
     var codexTokens = TokenTotals()
     var spend: [AdminProvider: SpendState] = [:]
@@ -45,7 +46,11 @@ final class Store {
         // 启动时不联网，先用上次查询的结果（状态栏图标也靠它）
         claude.quota = QuotaCache.load("claude")
         codex.quota = QuotaCache.load("codex")
+        grok.quota = QuotaCache.load("grok")
     }
+
+    /// 本机用 Grok CLI 登录过（或者之前查到过额度）才显示 Grok 卡片
+    var grokInUse: Bool { !grok.notInUse }
 
     /// 状态栏图标里两层圆环的长度和旁边的数字：各家最紧张的那个额度（剩余比例最小的窗口）
     var iconLevels: [Double?] {
@@ -66,7 +71,7 @@ final class Store {
     }
 
     var hasError: Bool {
-        [claude, codex].contains { $0.error != nil && !$0.notInUse } || spend.values.contains { $0.error != nil }
+        [claude, codex, grok].contains { $0.error != nil && !$0.notInUse } || spend.values.contains { $0.error != nil }
     }
 
     func panelOpened() {
@@ -114,10 +119,11 @@ final class Store {
         let minAge = force ? 0 : Self.minFetchInterval
         async let claudeDone: Void = fetchClaude(minAge: minAge)
         async let codexDone: Void = fetchCodex(minAge: minAge)
+        async let grokDone: Void = fetchGrok(minAge: minAge)
         async let statusDone: Void = refreshServiceStatus(maxAge: 60)
         async let signalDone: Void = refreshResetSignal(maxAge: 120)
         async let spendResult = SpendService.fetchAll()
-        _ = await (claudeDone, codexDone, statusDone, signalDone)
+        _ = await (claudeDone, codexDone, grokDone, statusDone, signalDone)
 
         // 逐个合并而不是整体替换：查询期间新加的配置不会被抹掉，期间被清除的再去掉
         for (provider, state) in await spendResult {
@@ -149,12 +155,15 @@ final class Store {
         async let statusDone: Void = refreshServiceStatus(maxAge: Self.statusInterval - 10)
         async let signalDone: Void = refreshResetSignal(maxAge: Self.statusInterval - 10)
         async let deepseekDone: Void = refreshDeepSeek(maxAge: Self.statusInterval - 10)
-        let before = (lastQuotaFetch["claude"], lastQuotaFetch["codex"])
+        let before = (lastQuotaFetch["claude"], lastQuotaFetch["codex"], lastQuotaFetch["grok"])
         if let interval = Preferences.quotaRefresh.interval {
             activityBaseline = nil
             await fetchClaude(minAge: interval - 15)
             await fetchCodex(minAge: interval - 15)
+            await fetchGrok(minAge: interval - 15)
         } else {
+            // Grok 的用量不在本机日志里，判断不了「正在用」，没登录就不查，登录了按最长间隔查
+            if grokInUse { await fetchGrok(minAge: Self.activeQuotaInterval) }
             await refreshLocal()
             let now = (claude: claudeTokens.total, codex: codexTokens.total)
             // 刚切到这个模式时只记基准
@@ -164,7 +173,7 @@ final class Store {
             }
             activityBaseline = now
         }
-        if before != (lastQuotaFetch["claude"], lastQuotaFetch["codex"]) { lastUpdated = Date() }
+        if before != (lastQuotaFetch["claude"], lastQuotaFetch["codex"], lastQuotaFetch["grok"]) { lastUpdated = Date() }
         _ = await (statusDone, signalDone, deepseekDone)
     }
 
@@ -207,6 +216,23 @@ final class Store {
         case .failure(let error):
             claude.error = describe(error, key: "claude")   // 保留上一次的数据
             claude.signedOut = Self.isSignedOut(error)
+        }
+    }
+
+    private func fetchGrok(minAge: TimeInterval = 0) async {
+        guard begin("grok", minAge: minAge) else { return }
+        defer { inFlight.remove("grok") }
+        switch await capture({ try await GrokUsageClient.fetch() }) {
+        case .success(let quota):
+            grok.quota = quota
+            grok.error = nil
+            grok.signedOut = false
+            grok.setTodayUsed(Self.todayUsed("grok", quota))
+            QuotaCache.save(quota, as: "grok")
+            Notifier.shared.quotaUpdated(key: "grok", name: "Grok", quota: quota)
+        case .failure(let error):
+            grok.error = describe(error, key: "grok")   // 保留上一次的数据
+            grok.signedOut = Self.isSignedOut(error)
         }
     }
 

@@ -51,6 +51,8 @@ struct ProviderQuota: Equatable, Codable {
     var credits: Double?
     var source: QuotaSource
     var asOf: Date
+    /// Grok：几个产品共用一份额度，各自用了多少
+    var products: [ProductUsage]? = nil
 }
 
 struct ProviderState {

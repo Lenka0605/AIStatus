@@ -226,3 +226,8 @@
 "额度恢复提醒" = "Quota reset alerts";
 "语言" = "Language";
 "跟随系统" = "System";
+"Grok 登录已过期，使用一次 Grok 后自动恢复" = "Grok sign-in expired. Use Grok once to restore.";
+"Grok 聊天" = "Grok Chat";
+"本周期 %@" = "This period: %@";
+"本周期内这个产品用掉的额度，占总额度的百分比" = "Share of this period's total quota used by this product";
+"本机未登录 Grok，登录后自动显示" = "Not signed in to Grok on this Mac. Shows up after you sign in.";

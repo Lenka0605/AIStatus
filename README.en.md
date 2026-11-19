@@ -4,7 +4,7 @@
 
 [简体中文](README.md) | **English** | [Tiếng Việt](README.vi.md)
 
-See how much Claude Code and Codex quota you have left, plus your DeepSeek, Anthropic and OpenAI API balances, right from the Mac menu bar.
+See how much Claude Code, Codex and Grok quota you have left, plus your DeepSeek, Anthropic and OpenAI API balances, right from the Mac menu bar.
 
 [**⬇️ Download the latest AIStatus.dmg**](https://github.com/Lenka0605/AIStatus/releases/latest/download/AIStatus.dmg)
 
@@ -18,6 +18,7 @@ macOS 14 or later · Universal (Apple silicon and Intel)
 
 - **Quota at a glance**: rings and numbers on the menu bar icon show what's left of your Claude Code and Codex weekly quota
 - **Subscription quota**: weekly quota, per-model weekly quota (e.g. Fable), reset times, how much of the weekly quota you used today, and tokens used on this Mac today
+- **Grok**: once signed in with the Grok CLI, shows the weekly quota, reset time, and how much Grok Build (coding) and chat each used
 - **Codex**: Credits balance, plus the last and next announced "reset for everyone"
 - **DeepSeek**: account balance (top-up and bonus shown separately), with today's and this month's spending inferred from balance changes and a 7-day chart
 - **Anthropic / OpenAI API**: today's and this month's spending and remaining balance, using an Admin Key
@@ -45,7 +46,7 @@ Steps 2 and 3 are needed only once. Future versions are offered inside the app �
 
 ## Requirements
 
-- **Claude Code** signed in with a Claude account, and/or **Codex** signed in with a ChatGPT account — whichever you use is shown
+- **Claude Code** signed in with a Claude account, **Codex** signed in with a ChatGPT account, and/or the **Grok CLI** signed in with `grok login` — whichever you use is shown
 - DeepSeek and Anthropic / OpenAI API balances need a key entered in Settings
 
 ## Privacy

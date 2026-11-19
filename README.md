@@ -4,7 +4,7 @@
 
 **简体中文** | [English](README.en.md) | [Tiếng Việt](README.vi.md)
 
-在 Mac 状态栏里随时查看 Claude Code、Codex 还剩多少额度，以及 DeepSeek、Anthropic、OpenAI 的 API 余额。
+在 Mac 状态栏里随时查看 Claude Code、Codex、Grok 还剩多少额度，以及 DeepSeek、Anthropic、OpenAI 的 API 余额。
 
 [**⬇️ 下载最新版 AIStatus.dmg**](https://github.com/Lenka0605/AIStatus/releases/latest/download/AIStatus.dmg)
 
@@ -18,6 +18,7 @@ macOS 14 或更新 · Apple 芯片和 Intel 芯片通用
 
 - **状态栏一眼看余量**：图标上的圆环和数字显示 Claude Code、Codex 本周还剩多少
 - **订阅额度**：本周额度、单个模型（如 Fable）的周额度、重置时间、今天用掉了多少周额度、本机今天用了多少 Token
+- **Grok**：用 Grok CLI 登录后显示本周额度、重置时间，以及 Grok Build（写代码）和聊天各用了多少
 - **Codex**：Credits 余额，以及「全员重置」的上次时间和下次预告
 - **DeepSeek**：账户余额（充值、赠金分开显示），按余额变化推算今日、本月花费和近 7 天柱状图
 - **Anthropic / OpenAI API**：填 Admin Key 后显示当天、当月花费和剩余余额
@@ -45,7 +46,7 @@ macOS 14 或更新 · Apple 芯片和 Intel 芯片通用
 
 ## 使用前提
 
-- 用 **Claude Code** 登录过 Claude 账号，或用 ChatGPT 账号登录过 **Codex**，哪家登录了就显示哪家
+- 用 **Claude Code** 登录过 Claude 账号、用 ChatGPT 账号登录过 **Codex**，或用 `grok login` 登录过 **Grok CLI**，哪家登录了就显示哪家
 - DeepSeek 和 Anthropic / OpenAI API 余额需要在设置里填写 Key
 
 ## 隐私
