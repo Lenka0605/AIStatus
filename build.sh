@@ -20,7 +20,7 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/AIStatus "$APP/Contents/MacOS/AIStatus"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
-cp -R Resources/*.lproj "$APP/Contents/Resources/"
+cp -R Resources/*.lproj Resources/BrandIcons "$APP/Contents/Resources/"
 
 rm -rf build/AppIcon.iconset
 .build/release/AIStatus --make-icon build/AppIcon.iconset

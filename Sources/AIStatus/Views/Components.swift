@@ -151,7 +151,24 @@ enum AppIcons {
     static let chatgpt = chatgptApp.flatMap { rasterized(NSWorkspace.shared.icon(forFile: $0.path)) }
     static let deepseek = deepseekApp.flatMap { rasterized(NSWorkspace.shared.icon(forFile: $0.path)) }
     static let grokApp = locate(paths: ["/Applications/Grok.app"], bundleIDs: ["ai.x.grok", "ai.x.GrokApp"])
-    static let grok = grokApp.flatMap { rasterized(NSWorkspace.shared.icon(forFile: $0.path)) }
+    /// 没装 Grok 桌面应用时，用打包进来的官方图标（App Store 上 Grok 应用的图标，Resources/BrandIcons/Grok.png）
+    static let grok = grokApp.flatMap { rasterized(NSWorkspace.shared.icon(forFile: $0.path)) } ?? bundled("Grok")
+
+    /// 打包的方形图标裁成和系统应用图标差不多的圆角
+    private static func bundled(_ name: String, points: CGFloat = 32, scale: Int = 3) -> NSImage? {
+        guard let url = Bundle.main.url(forResource: name, withExtension: "png", subdirectory: "BrandIcons"),
+              let source = NSImage(contentsOf: url) else { return nil }
+        let pixels = CGFloat(Int(points) * scale)
+        let image = NSImage(size: NSSize(width: pixels, height: pixels), flipped: false) { rect in
+            // macOS 应用图标四周有约 10% 的留白，留出同样的边，和旁边几家的图标一样大
+            let icon = rect.insetBy(dx: pixels * 0.1, dy: pixels * 0.1)
+            NSBezierPath(roundedRect: icon, xRadius: icon.width * 0.225, yRadius: icon.width * 0.225).addClip()
+            source.draw(in: icon)
+            return true
+        }
+        guard let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
+        return NSImage(cgImage: cg, size: NSSize(width: points, height: points))
+    }
 
     private static func locate(paths: [String], bundleIDs: [String]) -> URL? {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
