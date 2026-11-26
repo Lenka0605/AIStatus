@@ -231,3 +231,9 @@
 "本周期 %@" = "Kỳ này: %@";
 "本周期内这个产品用掉的额度，占总额度的百分比" = "Phần hạn mức kỳ này mà sản phẩm này đã dùng, tính theo % tổng hạn mức";
 "本机未登录 Grok，登录后自动显示" = "Chưa đăng nhập Grok trên máy này. Sẽ hiện sau khi đăng nhập.";
+"5 小时 %@" = "5 giờ %@";
+"Claude 和 GPT" = "Claude & GPT";
+"本机未安装 Antigravity，安装并登录后自动显示" = "Chưa cài Antigravity trên máy này. Sẽ hiện sau khi cài và đăng nhập.";
+"本机未登录 Antigravity，登录后自动显示" = "Chưa đăng nhập Antigravity trên máy này. Sẽ hiện sau khi đăng nhập.";
+"填好 Key 和余额后点保存" = "Nhập Key và số dư rồi nhấn Lưu";
+"这里的修改立即生效" = "Thay đổi ở đây có hiệu lực ngay";

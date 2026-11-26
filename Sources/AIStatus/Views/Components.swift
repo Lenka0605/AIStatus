@@ -35,6 +35,7 @@ enum Palette {
     static let claude = Color(red: 0.851, green: 0.467, blue: 0.341)   // #D97757
     static let codex = Color(red: 0.063, green: 0.639, blue: 0.498)    // #10A37F
     static let deepseek = Color(red: 0.302, green: 0.420, blue: 0.996) // #4D6BFE
+    static let gemini = Color(red: 0.231, green: 0.557, blue: 0.918)  // #3B8EEA
     static let grok = Color(red: 0.420, green: 0.447, blue: 0.502)     // #6B7280，Grok 的品牌色是黑白，用石墨灰
     static let danger = Color(red: 0.92, green: 0.30, blue: 0.27)
     static let warn = Color(red: 0.96, green: 0.62, blue: 0.20)
@@ -106,7 +107,7 @@ struct AppGlyph: View {
 
 /// 卡片左上角的品牌图标：优先用本机安装的 Claude / ChatGPT / DeepSeek Harness 应用图标
 struct BrandIcon: View {
-    enum Kind { case claude, chatgpt, deepseek, grok }
+    enum Kind { case claude, chatgpt, deepseek, grok, gemini }
     let kind: Kind
     let tint: Color
 
@@ -130,6 +131,7 @@ struct BrandIcon: View {
         case .chatgpt: return AppIcons.chatgpt
         case .deepseek: return AppIcons.deepseek
         case .grok: return AppIcons.grok
+        case .gemini: return AppIcons.gemini
         }
     }
 
@@ -139,6 +141,7 @@ struct BrandIcon: View {
         case .chatgpt: Text("G")
         case .deepseek: Image(systemName: "fish.fill")   // 没有鲸鱼，用鱼代替
         case .grok: Text("X")
+        case .gemini: Image(systemName: "sparkle")
         }
     }
 }
@@ -151,6 +154,8 @@ enum AppIcons {
     static let chatgpt = chatgptApp.flatMap { rasterized(NSWorkspace.shared.icon(forFile: $0.path)) }
     static let deepseek = deepseekApp.flatMap { rasterized(NSWorkspace.shared.icon(forFile: $0.path)) }
     static let grokApp = locate(paths: ["/Applications/Grok.app"], bundleIDs: ["ai.x.grok", "ai.x.GrokApp"])
+    static let geminiApp = locate(paths: ["/Applications/Gemini.app"], bundleIDs: ["com.google.GeminiMacOS"])
+    static let gemini = geminiApp.flatMap { rasterized(NSWorkspace.shared.icon(forFile: $0.path)) } ?? bundled("Gemini")
     /// 没装 Grok 桌面应用时，用打包进来的官方图标（App Store 上 Grok 应用的图标，Resources/BrandIcons/Grok.png）
     static let grok = grokApp.flatMap { rasterized(NSWorkspace.shared.icon(forFile: $0.path)) } ?? bundled("Grok")
 

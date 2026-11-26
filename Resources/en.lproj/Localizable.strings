@@ -231,3 +231,9 @@
 "本周期 %@" = "This period: %@";
 "本周期内这个产品用掉的额度，占总额度的百分比" = "Share of this period's total quota used by this product";
 "本机未登录 Grok，登录后自动显示" = "Not signed in to Grok on this Mac. Shows up after you sign in.";
+"5 小时 %@" = "5-hour %@";
+"Claude 和 GPT" = "Claude & GPT";
+"本机未安装 Antigravity，安装并登录后自动显示" = "Antigravity isn't installed on this Mac. Shows up after you install it and sign in.";
+"本机未登录 Antigravity，登录后自动显示" = "Not signed in to Antigravity on this Mac. Shows up after you sign in.";
+"填好 Key 和余额后点保存" = "Enter your keys and balances, then click Save";
+"这里的修改立即生效" = "Changes here take effect immediately";

@@ -29,7 +29,7 @@ struct PopoverView: View {
     }
 
     enum Card: Identifiable {
-        case claude, chatgpt, grok, deepseek, apiBalance
+        case claude, chatgpt, grok, gemini, deepseek, apiBalance
         var id: Self { self }
     }
 
@@ -39,8 +39,10 @@ struct PopoverView: View {
         let apiConfigured = AdminProvider.allCases.contains { !$0.reportsBalance && store.spend[$0] != nil }
         var list: [Card] = [.claude, .chatgpt]
         if store.grokInUse { list.append(.grok) }
+        if store.geminiInUse { list.append(.gemini) }
         list.append(.deepseek)
-        if apiConfigured || !store.grokInUse { list.append(.apiBalance) }
+        // 凑成偶数张：上面几张是奇数时，没配置的「API 余额」卡补位；已经是偶数就让位，面板不会变高
+        if apiConfigured || list.count % 2 == 1 { list.append(.apiBalance) }
         return list
     }
 
@@ -49,6 +51,7 @@ struct PopoverView: View {
         case .claude: ProviderCard(info: .claude, state: store.claude, tokens: store.claudeTokens)
         case .chatgpt: ProviderCard(info: .chatgpt, state: store.codex, tokens: store.codexTokens, signal: store.resetSignal)
         case .grok: ProviderCard(info: .grok, state: store.grok, tokens: nil)
+        case .gemini: ProviderCard(info: .gemini, state: store.gemini, tokens: nil)
         case .deepseek: DeepSeekCard(openSettings: actions.openSettings)
         case .apiBalance: ApiBalanceCard(openSettings: actions.openSettings)
         }
@@ -174,6 +177,14 @@ struct ProviderInfo {
         web: URL(string: "https://chatgpt.com")!,
         usage: URL(string: "https://chatgpt.com/codex/settings/usage")!,
         status: ServiceStatusClient.openai.pageURL
+    )
+
+    static let gemini = ProviderInfo(
+        name: "Gemini", product: "Antigravity", kind: .gemini, tint: Palette.gemini,
+        price: { _ in nil }, app: AppIcons.geminiApp,
+        web: URL(string: "https://gemini.google.com")!,
+        usage: URL(string: "https://antigravity.google")!,
+        status: URL(string: "https://status.cloud.google.com")!
     )
 
     /// 没有桌面应用时打开网页版；用量页是 Grok CLI 里 /usage 给的链接
@@ -320,7 +331,7 @@ struct ProviderHeader: View {
 
     private var statusHelp: String {
         // xAI 的状态页有 Cloudflare 拦着，程序读不到，只能点开看
-        if info.kind == .grok { return L("打开官方状态页") }
+        if info.kind == .grok || info.kind == .gemini { return L("打开官方状态页") }
         guard let health else { return L("服务状态：还没查到，点击打开官方状态页") }
         let text = health.level == .ok ? ServiceLevel.ok.title : health.summary ?? health.level.title
         return L("服务状态：\(text)，点击打开官方状态页")

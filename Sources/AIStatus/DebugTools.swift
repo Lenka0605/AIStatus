@@ -68,6 +68,16 @@ enum DebugTools {
             QuotaWindow(id: "seven_day_fable", name: .weeklyModel("Fable"), usedPercent: 0, resetsAt: now.addingTimeInterval(2 * 86_400),
                         allowance: 50),
         ], credits: nil, source: .live, asOf: now)
+        store.gemini.quota = ProviderQuota(plan: nil, windows: [
+            QuotaWindow(id: "gemini_weekly", name: .weeklyModel("Gemini"), usedPercent: 38, resetsAt: now.addingTimeInterval(5 * 86_400), weekly: true),
+            QuotaWindow(id: "gemini_5h", name: .fiveHourOf("Gemini"), usedPercent: 12, resetsAt: now.addingTimeInterval(3 * 3600)),
+        ], credits: nil, source: .live, asOf: now)
+        store.gemini.setTodayUsed(9)
+        store.grok.quota = ProviderQuota(plan: nil, windows: [
+            QuotaWindow(id: "grok_period", name: .weekly, usedPercent: 14, resetsAt: now.addingTimeInterval(4 * 86_400), weekly: true),
+        ], credits: nil, source: .live, asOf: now,
+        products: [ProductUsage(product: "GrokBuild", usedPercent: 13), ProductUsage(product: "GrokChat", usedPercent: 1)])
+        store.grok.setTodayUsed(3)
         store.claude.setTodayUsed(2)
         store.codex.quota = ProviderQuota(plan: "Pro", windows: [
             QuotaWindow(id: "secondary_window", name: .span(minutes: 10_080), usedPercent: 81, resetsAt: now.addingTimeInterval(6 * 86_400), weekly: true),
@@ -126,6 +136,7 @@ enum DebugTools {
         }
         describe("Claude", store.claude, store.claudeTokens)
         describe("ChatGPT / Codex", store.codex, store.codexTokens)
+        describe("Gemini", store.gemini, TokenTotals())
         describe("Grok", store.grok, TokenTotals())
         if let products = store.grok.quota?.products {
             print("  各产品: " + products.map { "\($0.title) \(Fmt.percent($0.usedPercent))" }.joined(separator: "  "))
@@ -173,10 +184,12 @@ enum DebugTools {
             }
             snapshotSettingsWindow(store, appearance: appearance, to: dir.appendingPathComponent("settings-\(name).png"))
         }
-        // 不限高度的完整版本（看最下面的分区用）
-        snapshotSettingsWindow(store, appearance: .aqua, maxHeight: 3000, to: dir.appendingPathComponent("settings-full.png"))
-        // 屏幕不够高时的滚动版本
-        snapshotSettingsWindow(store, appearance: .aqua, maxHeight: 600, to: dir.appendingPathComponent("settings-short.png"))
+        for tab in SettingsTab.allCases where tab != .balance {
+            snapshotSettingsWindow(store, appearance: .aqua, tab: tab, to: dir.appendingPathComponent("settings-\(tab.rawValue).png"))
+            snapshotSettingsWindow(store, appearance: .darkAqua, tab: tab, to: dir.appendingPathComponent("settings-\(tab.rawValue)-dark.png"))
+        }
+        // 屏幕不够高时内容区缩短、页内滚动
+        snapshotSettingsWindow(store, appearance: .aqua, maxHeight: 520, to: dir.appendingPathComponent("settings-short.png"))
         let menu = Image(nsImage: MenuBarIcon.image(levels: store.iconLevels))
             .renderingMode(.template)
             .foregroundStyle(.black)
@@ -188,8 +201,8 @@ enum DebugTools {
 
     /// 设置页里有原生输入框，ImageRenderer 画不出来，所以开一个真实窗口（放在屏幕外）再截取它的内容
     private static func snapshotSettingsWindow(_ store: Store, appearance: NSAppearance.Name, maxHeight: CGFloat? = nil,
-                                               to url: URL) {
-        let host = NSHostingController(rootView: SettingsView(maxHeight: maxHeight).environment(store).environment(SettingsModel()))
+                                               tab: SettingsTab = .balance, to url: URL) {
+        let host = NSHostingController(rootView: SettingsView(maxHeight: maxHeight, tab: tab).environment(store).environment(SettingsModel()))
         host.sizingOptions = [.preferredContentSize]
         let window = NSWindow(contentViewController: host)
         window.styleMask = [.titled, .closable]

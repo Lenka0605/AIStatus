@@ -7,6 +7,8 @@ struct QuotaWindow: Identifiable, Equatable, Codable {
         case fiveHour
         /// 单个模型的周额度，如 Fable
         case weeklyModel(String)
+        /// 某一组模型的 5 小时额度，如 Gemini
+        case fiveHourOf(String)
         /// Codex 按窗口长度命名（本周、5 小时……）
         case span(minutes: Int?)
     }
@@ -25,6 +27,7 @@ struct QuotaWindow: Identifiable, Equatable, Codable {
         case .weekly: return L("本周")
         case .fiveHour: return L("5 小时")
         case .weeklyModel(let model): return L("本周 \(model)")
+        case .fiveHourOf(let group): return L("5 小时 \(group)")
         case .span(let minutes): return CodexUsageClient.windowLabel(minutes: minutes)
         }
     }

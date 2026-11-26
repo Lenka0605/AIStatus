@@ -11,6 +11,7 @@ final class Store {
     var claude = ProviderState()
     var codex = ProviderState()
     var grok = ProviderState()
+    var gemini = ProviderState()
     var claudeTokens = TokenTotals()
     var codexTokens = TokenTotals()
     var spend: [AdminProvider: SpendState] = [:]
@@ -40,6 +41,8 @@ final class Store {
     private static let tickInterval: TimeInterval = 60
     private static let statusInterval: TimeInterval = 300
     private static let activeQuotaInterval: TimeInterval = 600
+    /// Gemini 靠启动 agy 来查，每次都要拉起一个 200MB 的程序，后台最密也只每 10 分钟一次
+    private static let geminiMinInterval: TimeInterval = 600
 
     init() {
         reloadConfiguredProviders()
@@ -47,10 +50,13 @@ final class Store {
         claude.quota = QuotaCache.load("claude")
         codex.quota = QuotaCache.load("codex")
         grok.quota = QuotaCache.load("grok")
+        gemini.quota = QuotaCache.load("gemini")
     }
 
-    /// 本机用 Grok CLI 登录过（或者之前查到过额度）才显示 Grok 卡片
-    var grokInUse: Bool { !grok.notInUse }
+    /// Grok、Gemini 这两家是可选的：查到过额度（或者查询出错但不是「没登录」）才显示卡片。
+    /// 第一次查询回来之前不显示，免得没装的人看到卡片一闪而过
+    var grokInUse: Bool { grok.quota != nil || (grok.error != nil && !grok.signedOut) }
+    var geminiInUse: Bool { gemini.quota != nil || (gemini.error != nil && !gemini.signedOut) }
 
     /// 状态栏图标里两层圆环的长度和旁边的数字：各家最紧张的那个额度（剩余比例最小的窗口）
     var iconLevels: [Double?] {
@@ -71,7 +77,7 @@ final class Store {
     }
 
     var hasError: Bool {
-        [claude, codex, grok].contains { $0.error != nil && !$0.notInUse } || spend.values.contains { $0.error != nil }
+        [claude, codex, grok, gemini].contains { $0.error != nil && !$0.notInUse } || spend.values.contains { $0.error != nil }
     }
 
     func panelOpened() {
@@ -120,10 +126,11 @@ final class Store {
         async let claudeDone: Void = fetchClaude(minAge: minAge)
         async let codexDone: Void = fetchCodex(minAge: minAge)
         async let grokDone: Void = fetchGrok(minAge: minAge)
+        async let geminiDone: Void = fetchGemini(minAge: max(minAge, Self.geminiMinInterval / 5))
         async let statusDone: Void = refreshServiceStatus(maxAge: 60)
         async let signalDone: Void = refreshResetSignal(maxAge: 120)
         async let spendResult = SpendService.fetchAll()
-        _ = await (claudeDone, codexDone, grokDone, statusDone, signalDone)
+        _ = await (claudeDone, codexDone, grokDone, geminiDone, statusDone, signalDone)
 
         // 逐个合并而不是整体替换：查询期间新加的配置不会被抹掉，期间被清除的再去掉
         for (provider, state) in await spendResult {
@@ -155,15 +162,17 @@ final class Store {
         async let statusDone: Void = refreshServiceStatus(maxAge: Self.statusInterval - 10)
         async let signalDone: Void = refreshResetSignal(maxAge: Self.statusInterval - 10)
         async let deepseekDone: Void = refreshDeepSeek(maxAge: Self.statusInterval - 10)
-        let before = (lastQuotaFetch["claude"], lastQuotaFetch["codex"], lastQuotaFetch["grok"])
+        let before = (lastQuotaFetch["claude"], lastQuotaFetch["codex"], lastQuotaFetch["grok"], lastQuotaFetch["gemini"])
         if let interval = Preferences.quotaRefresh.interval {
             activityBaseline = nil
             await fetchClaude(minAge: interval - 15)
             await fetchCodex(minAge: interval - 15)
             await fetchGrok(minAge: interval - 15)
+            await fetchGemini(minAge: max(interval - 15, Self.geminiMinInterval))
         } else {
             // Grok 的用量不在本机日志里，判断不了「正在用」，没登录就不查，登录了按最长间隔查
             if grokInUse { await fetchGrok(minAge: Self.activeQuotaInterval) }
+            if geminiInUse { await fetchGemini(minAge: Self.activeQuotaInterval) }
             await refreshLocal()
             let now = (claude: claudeTokens.total, codex: codexTokens.total)
             // 刚切到这个模式时只记基准
@@ -173,7 +182,7 @@ final class Store {
             }
             activityBaseline = now
         }
-        if before != (lastQuotaFetch["claude"], lastQuotaFetch["codex"], lastQuotaFetch["grok"]) { lastUpdated = Date() }
+        if before != (lastQuotaFetch["claude"], lastQuotaFetch["codex"], lastQuotaFetch["grok"], lastQuotaFetch["gemini"]) { lastUpdated = Date() }
         _ = await (statusDone, signalDone, deepseekDone)
     }
 
@@ -233,6 +242,23 @@ final class Store {
         case .failure(let error):
             grok.error = describe(error, key: "grok")   // 保留上一次的数据
             grok.signedOut = Self.isSignedOut(error)
+        }
+    }
+
+    private func fetchGemini(minAge: TimeInterval = 0) async {
+        guard begin("gemini", minAge: minAge) else { return }
+        defer { inFlight.remove("gemini") }
+        switch await capture({ try await GeminiUsageClient.fetch() }) {
+        case .success(let quota):
+            gemini.quota = quota
+            gemini.error = nil
+            gemini.signedOut = false
+            gemini.setTodayUsed(Self.todayUsed("gemini", quota))
+            QuotaCache.save(quota, as: "gemini")
+            Notifier.shared.quotaUpdated(key: "gemini", name: "Gemini", quota: quota)
+        case .failure(let error):
+            gemini.error = describe(error, key: "gemini")   // 保留上一次的数据
+            gemini.signedOut = Self.isSignedOut(error)
         }
     }
 
