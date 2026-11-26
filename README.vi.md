@@ -10,7 +10,7 @@ Xem nhanh hạn mức còn lại của Claude Code, Codex, Grok, Gemini và số
 
 macOS 14 trở lên · Hỗ trợ cả chip Apple và Intel
 
-<img src="docs/screenshot-vi.png" width="640" alt="Ảnh chụp bảng Hạn mức AI">
+<img src="docs/screenshot-vi.png" width="760" alt="Ảnh chụp bảng Hạn mức AI">
 
 </div>
 

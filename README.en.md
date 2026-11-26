@@ -10,7 +10,7 @@ See how much Claude Code, Codex, Grok and Gemini quota you have left, plus your 
 
 macOS 14 or later · Universal (Apple silicon and Intel)
 
-<img src="docs/screenshot-en.png" width="640" alt="AI Quota panel screenshot">
+<img src="docs/screenshot-en.png" width="760" alt="AI Quota panel screenshot">
 
 </div>
 

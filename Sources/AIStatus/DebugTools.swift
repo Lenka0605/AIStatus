@@ -39,6 +39,8 @@ enum DebugTools {
             RunLoop.main.run()
         }
 
+        if let height = value(after: "--panel-height").flatMap(Double.init) { PopoverView.debugMaxCardsHeight = CGFloat(height) }
+
         // ImageRenderer 需要主 RunLoop 在跑，所以这里手动驱动 RunLoop 等待数据，而不是 dispatchMain()
         final class Flag { var done = false }
         let store = Store()

@@ -10,7 +10,7 @@
 
 macOS 14 或更新 · Apple 芯片和 Intel 芯片通用
 
-<img src="docs/screenshot-zh.png" width="640" alt="AI 余量面板截图">
+<img src="docs/screenshot-zh.png" width="760" alt="AI 余量面板截图">
 
 </div>
 

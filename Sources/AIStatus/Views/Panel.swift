@@ -5,7 +5,7 @@ import SwiftUI
 @MainActor
 @Observable
 final class PanelChrome {
-    var arrowX: CGFloat = PopoverView.width / 2
+    var arrowX: CGFloat = PopoverView.width(columns: 2) / 2
     /// 驱动出现/收起动画
     var shown = false
 }
@@ -16,7 +16,7 @@ struct PanelRoot: View {
     /// 当前阴影实测（alpha > 1%）：两侧 18pt、向下 27pt、向上 9pt（面板主体顶部离窗口顶 12pt）
     static let insets = EdgeInsets(top: 2, leading: 24, bottom: 34, trailing: 24)
     static let arrowHeight: CGFloat = 10
-    static var windowWidth: CGFloat { PopoverView.width + insets.leading + insets.trailing }
+    static var windowWidth: CGFloat { PopoverView.width(columns: 2) + insets.leading + insets.trailing }
 
     let chrome: PanelChrome
     let store: Store
@@ -25,6 +25,7 @@ struct PanelRoot: View {
 
     var body: some View {
         let shape = CalloutShape(arrowX: chrome.arrowX, arrowHeight: Self.arrowHeight)
+        let width = PopoverView.width(columns: PopoverView.layout(store).columns)
         PopoverView(actions: actions)
             .environment(store)
             .padding(.top, Self.arrowHeight)
@@ -32,7 +33,7 @@ struct PanelRoot: View {
             .background(shape.fill(Theme.panel).shadow(color: .black.opacity(0.15), radius: 12, y: 9))
             .overlay(shape.stroke(Theme.panelBorder, lineWidth: 1))
             // 从箭头尖端处展开，像系统弹出框一样
-            .scaleEffect(chrome.shown ? 1 : 0.9, anchor: UnitPoint(x: chrome.arrowX / PopoverView.width, y: 0))
+            .scaleEffect(chrome.shown ? 1 : 0.9, anchor: UnitPoint(x: chrome.arrowX / width, y: 0))
             .opacity(chrome.shown ? 1 : 0)
             .padding(Self.insets)
             .fixedSize()

@@ -5,45 +5,72 @@ struct PanelActions {
     var quit: () -> Void = { NSApp.terminate(nil) }
 }
 
-/// 两列卡片：上面一行是订阅额度（Claude Code / Codex），下面一行是按量付费的 API 余额
+/// 卡片按两列（卡片多、屏幕又够宽时三列）排：订阅额度的卡片在前，按量付费的 API 余额在后。
+/// 面板最高不超过屏幕：放不下时卡片区域滚动，标题和底部按钮始终可见
 struct PopoverView: View {
     static let columnWidth: CGFloat = 298
-    static let width: CGFloat = columnWidth * 2 + 12 + 32
+    static func width(columns: Int) -> CGFloat { columnWidth * CGFloat(columns) + 12 * CGFloat(columns - 1) + 32 }
+
+    /// 命令行截图用：覆盖卡片区域的最大高度，测试滚动
+    nonisolated(unsafe) static var debugMaxCardsHeight: CGFloat?
 
     @Environment(Store.self) private var store
     let actions: PanelActions
 
     var body: some View {
+        let layout = Self.layout(store)
         VStack(spacing: 12) {
             header
-            ForEach(Array(stride(from: 0, to: cards.count, by: 2)), id: \.self) { start in
-                row {
-                    ForEach(cards[start..<min(start + 2, cards.count)]) { card($0) }
-                    if start + 1 == cards.count { Color.clear.frame(maxWidth: .infinity) }   // 单数时右边留空，卡片宽度不变
-                }
-            }
+            cardArea(layout)
             footer
         }
         .padding(16)
-        .frame(width: Self.width)
+        .frame(width: Self.width(columns: layout.columns))
     }
+
+    private func cardArea(_ layout: (cards: [Card], columns: Int)) -> some View {
+        let grid = VStack(spacing: 12) {
+            ForEach(Array(stride(from: 0, to: layout.cards.count, by: layout.columns)), id: \.self) { start in
+                let slice = layout.cards[start..<min(start + layout.columns, layout.cards.count)]
+                row {
+                    ForEach(slice) { card($0) }
+                    // 最后一行不满时留空，卡片宽度不变
+                    ForEach(0..<(layout.columns - slice.count), id: \.self) { _ in Color.clear.frame(maxWidth: .infinity) }
+                }
+            }
+        }
+        return ViewThatFits(in: .vertical) {
+            grid
+            ScrollView(.vertical, showsIndicators: false) { grid }
+        }
+        .frame(maxHeight: Self.maxCardsHeight)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// 屏幕可用高度减去面板的箭头、边距、标题和底部按钮
+    private static var maxCardsHeight: CGFloat {
+        debugMaxCardsHeight ?? ((NSScreen.main?.visibleFrame.height ?? 800) - 220)
+    }
+
+    /// 屏幕够宽（放得下三列）
+    private static var isWideScreen: Bool { (NSScreen.main?.visibleFrame.width ?? 1400) >= 1280 }
 
     enum Card: Identifiable {
         case claude, chatgpt, grok, gemini, deepseek, apiBalance
         var id: Self { self }
     }
 
-    /// 两列排。Grok 只在本机登录过时显示；这时如果 Anthropic / OpenAI 的 Admin Key 也没配，
-    /// 那张「API 余额」卡只是个去设置的入口，让位给 Grok，面板保持 2×2 不变高（设置里照样能配）
-    private var cards: [Card] {
+    /// 要显示的卡片和列数。Grok、Gemini 只在本机用过时显示。
+    /// 「API 余额」没配置时只是个去设置的入口：卡片数正好排满就让位（设置里照样能配），排不满就拿来补位
+    static func layout(_ store: Store) -> (cards: [Card], columns: Int) {
         let apiConfigured = AdminProvider.allCases.contains { !$0.reportsBalance && store.spend[$0] != nil }
         var list: [Card] = [.claude, .chatgpt]
         if store.grokInUse { list.append(.grok) }
         if store.geminiInUse { list.append(.gemini) }
         list.append(.deepseek)
-        // 凑成偶数张：上面几张是奇数时，没配置的「API 余额」卡补位；已经是偶数就让位，面板不会变高
-        if apiConfigured || list.count % 2 == 1 { list.append(.apiBalance) }
-        return list
+        let columns = list.count >= 5 && isWideScreen ? 3 : 2
+        if apiConfigured || list.count % columns != 0 { list.append(.apiBalance) }
+        return (list, columns)
     }
 
     @ViewBuilder private func card(_ card: Card) -> some View {
